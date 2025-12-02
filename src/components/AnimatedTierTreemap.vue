@@ -209,7 +209,7 @@ const toggleComparison = () => {
 };
 
 const calculateTierPositions = (width, height) => {
-  const margin = { top: 60, right: 50, bottom: 120, left: 100 };
+  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
 
@@ -384,7 +384,7 @@ const calculateTreemapPositions = (width, height) => {
 };
 
 const drawLabelsAndGrid = (width, height) => {
-  const margin = { top: 60, right: 50, bottom: 120, left: 100 };
+  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
 
@@ -535,7 +535,7 @@ const drawLabelsAndGrid = (width, height) => {
 };
 
 const drawTierBackgrounds = (width, height) => {
-  const margin = { top: 60, right: 50, bottom: 120, left: 100 };
+  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
   const cellHeight = gridHeight / tiers.length;
@@ -561,6 +561,173 @@ const drawTierBackgrounds = (width, height) => {
   return backgrounds;
 };
 
+const drawLegends = (width, height) => {
+  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
+
+  // Remove old legends
+  svg.selectAll(".legend-item").remove();
+  svg.selectAll(".legend-gradient").remove();
+
+  // Comparison mode legend (only in tier mode with comparison)
+  if (viewMode.value === "tier" && showComparison.value) {
+    const legendX = margin.left;
+    const legendY = height - margin.bottom + 60;
+    const legendItemSize = 18;
+    const legendSpacing = 120;
+
+    // Up triangle (improved)
+    const upPath = `M ${legendX},${legendY - legendItemSize * 0.4} L ${
+      legendX + legendItemSize * 0.45
+    },${legendY + legendItemSize * 0.4} L ${legendX - legendItemSize * 0.45},${
+      legendY + legendItemSize * 0.4
+    } Z`;
+    svg
+      .append("path")
+      .attr("class", "legend-item")
+      .attr("d", upPath)
+      .attr("fill", colors.defaultBlue);
+    svg
+      .append("text")
+      .attr("class", "legend-item")
+      .attr("x", legendX + 15)
+      .attr("y", legendY + 5)
+      .style("font-size", "1.1rem")
+      .text("Improved");
+
+    // Square (no change)
+    svg
+      .append("rect")
+      .attr("class", "legend-item")
+      .attr("x", legendX + legendSpacing - legendItemSize / 2)
+      .attr("y", legendY - legendItemSize / 2)
+      .attr("width", legendItemSize)
+      .attr("height", legendItemSize)
+      .attr("fill", colors.lightBlue);
+    svg
+      .append("text")
+      .attr("class", "legend-item")
+      .attr("x", legendX + legendSpacing + 15)
+      .attr("y", legendY + 5)
+      .style("font-size", "1.1rem")
+      .text("No Change");
+
+    // Down triangle (worsened)
+    const downPath = `M ${legendX + legendSpacing * 2},${
+      legendY + legendItemSize * 0.4
+    } L ${legendX + legendSpacing * 2 + legendItemSize * 0.45},${
+      legendY - legendItemSize * 0.4
+    } L ${legendX + legendSpacing * 2 - legendItemSize * 0.45},${
+      legendY - legendItemSize * 0.4
+    } Z`;
+    svg
+      .append("path")
+      .attr("class", "legend-item")
+      .attr("d", downPath)
+      .attr("fill", colors.redColor);
+    svg
+      .append("text")
+      .attr("class", "legend-item")
+      .attr("x", legendX + legendSpacing * 2 + 15)
+      .attr("y", legendY + 5)
+      .style("font-size", "1.1rem")
+      .text("Worsened");
+
+    // Gray dotted box (baseline)
+    svg
+      .append("rect")
+      .attr("class", "legend-item")
+      .attr("x", legendX + legendSpacing * 3 - legendItemSize / 2)
+      .attr("y", legendY - legendItemSize / 2)
+      .attr("width", legendItemSize)
+      .attr("height", legendItemSize)
+      .attr("stroke", colors.lightBlue)
+      .attr("stroke-width", 3)
+      .attr("stroke-dasharray", "2.5,2.5")
+      .attr("fill", "none");
+    svg
+      .append("text")
+      .attr("class", "legend-item")
+      .attr("x", legendX + legendSpacing * 3 + 15)
+      .attr("y", legendY + 5)
+      .style("font-size", "1.1rem")
+      .text("Baseline");
+  }
+
+  // Water volume legend (when water volume color mode is active)
+  if (colorMode.value === "waterVolume") {
+    const waterVolumeExtent = d3.extent(objectives, (d) => d.waterVolume);
+    const colorScale = d3
+      .scaleSequential((t) => d3.interpolateBlues(t * 0.7 + 0.2))
+      .domain(waterVolumeExtent);
+
+    const legendX = width - 200;
+    const legendY = height - margin.bottom + 80;
+    const gradientWidth = 150;
+    const gradientHeight = 20;
+
+    // Define gradient
+    const gradientId = "waterVolumeGradient";
+    svg.selectAll(`#${gradientId}`).remove();
+    const defs = svg.append("defs");
+    const gradient = defs
+      .append("linearGradient")
+      .attr("id", gradientId)
+      .attr("x1", "0%")
+      .attr("x2", "100%");
+
+    // Add color stops
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      const value =
+        waterVolumeExtent[0] +
+        t * (waterVolumeExtent[1] - waterVolumeExtent[0]);
+      gradient
+        .append("stop")
+        .attr("offset", `${t * 100}%`)
+        .attr("stop-color", colorScale(value));
+    }
+
+    // Draw gradient rectangle
+    svg
+      .append("rect")
+      .attr("class", "legend-gradient")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .attr("width", gradientWidth)
+      .attr("height", gradientHeight)
+      .style("fill", `url(#${gradientId})`)
+      .attr("stroke", "#999")
+      .attr("stroke-width", 1);
+
+    // Add labels
+    svg
+      .append("text")
+      .attr("class", "legend-gradient")
+      .attr("x", legendX)
+      .attr("y", legendY - 5)
+      .style("font-size", "0.9rem")
+      .style("font-weight", "600")
+      .text("Water Volume (Random)");
+
+    svg
+      .append("text")
+      .attr("class", "legend-gradient")
+      .attr("x", legendX)
+      .attr("y", legendY + gradientHeight + 15)
+      .style("font-size", "0.8rem")
+      .text(`${Math.round(waterVolumeExtent[0])} TAF`);
+
+    svg
+      .append("text")
+      .attr("class", "legend-gradient")
+      .attr("x", legendX + gradientWidth)
+      .attr("y", legendY + gradientHeight + 15)
+      .attr("text-anchor", "end")
+      .style("font-size", "0.8rem")
+      .text(`${Math.round(waterVolumeExtent[1])} TAF`);
+  }
+};
+
 const animateTransition = (shouldAnimate = true) => {
   if (!svg || objectives.length === 0) return;
 
@@ -580,6 +747,9 @@ const animateTransition = (shouldAnimate = true) => {
 
   // Draw/remove labels and grid
   drawLabelsAndGrid(width, height);
+
+  // Draw legends
+  drawLegends(width, height);
 
   const tierPositions = calculateTierPositions(width, height);
   const treemapPositions = calculateTreemapPositions(width, height);

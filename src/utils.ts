@@ -1,4 +1,5 @@
-const API_ROOT = "https://api.coeqwal.org/api";
+// Use CORS proxy (temporary solution for GitHub Pages deployment)
+const API_ROOT = "https://corsproxy.io/?https://api.coeqwal.org/api";
 
 export const calculateMeanTier = (objectives: any[]): number => {
   if (!objectives || objectives.length === 0) {
