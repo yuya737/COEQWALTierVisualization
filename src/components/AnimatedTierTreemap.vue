@@ -142,6 +142,13 @@ const colors = {
   redColor: "#F87171",
 };
 
+const tierColorMap = {
+  "Tier 1": [236, 253, 245, 255],   // Light green
+  "Tier 2": [239, 246, 255, 255],  // Light blue
+  "Tier 3": [254, 252, 232, 255],  // Light yellow
+  "Tier 4": [254, 242, 242, 255],   // Light red
+};
+
 // Category color scale
 const categoryColorScale = d3.scaleOrdinal(d3.schemeSet3);
 
@@ -159,12 +166,22 @@ const drawPolygonsOnMap = (objective) => {
     return;
   }
   const withinCategoryIndex = objective.withinCategoryIndex;
-  const polygonsToShow =
+  const polygonswithoutColor =
     geoJSONs[short_code]["features"][
       withinCategoryIndex % geoJSONs[short_code]["features"].length
     ];
 
-  emit("polygon-select", [polygonsToShow]);
+  let polygonsWithColor = null;
+  const initFillColor = tierColorMap[objective.tier];
+  polygonsWithColor = {
+    ...polygonswithoutColor,
+    properties: {
+      ...polygonswithoutColor.properties,
+      fillColor: initFillColor
+    },
+  };
+
+  emit("polygon-select", [polygonsWithColor]);
 };
 
 // Function to show all polygons for a category
@@ -187,7 +204,15 @@ const drawAllPolygonsForCategory = (categoryName) => {
   );
   selectedObjectives.value = categoryObjectives;
 
-  emit("polygon-select", geoJSONs[short_code]["features"]);
+  const polygonsWithColor = {
+    ...geoJSONs[short_code]["features"],
+    properties: {
+      ...geoJSONs[short_code]["features"].properties,
+      fillColor: tierColorMap[categoryName]
+    },
+  };
+
+  emit("polygon-select", polygonsWithColor);
 };
 
 const toggleView = () => {
