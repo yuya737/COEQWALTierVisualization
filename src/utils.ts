@@ -65,11 +65,18 @@ export const fetchData = async (scenarioID: string, tiers: string[]) => {
         const pseudoRandom = (seed % 233280) / 233280;
         const waterVolume = Math.floor(pseudoRandom * (1000 - 10 + 1)) + 10;
 
+        // Generate unmetDemand (10-80% of waterVolume)
+        const seed2 = index * 7919 + 31337; // Different seed for unmetDemand
+        const pseudoRandom2 = (seed2 % 233280) / 233280;
+        const unmetDemandPercent = 0.1 + pseudoRandom2 * 0.7; // 10% to 80%
+        const unmetDemand = Math.floor(waterVolume * unmetDemandPercent);
+
         return {
           ...obj,
           id: index,
           tier: tiers[obj.tier - 1],
           waterVolume: waterVolume,
+          unmetDemand: unmetDemand,
         };
       });
     console.log("Processed baseline data:", ret);

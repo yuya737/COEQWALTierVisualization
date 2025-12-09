@@ -35,16 +35,16 @@
           >
             {{
               colorMode === "waterVolume"
-                ? "Default Colors"
+                ? "Category Colors"
                 : "Water Volume Colors"
             }}
           </button>
           <button
             @click="toggleComparison"
-            :disabled="viewMode === 'treemap'"
+            :disabled="viewMode !== 'tier'"
             class="px-5 py-2.5 border border-gray-300 rounded-md text-sm font-semibold transition-colors"
             :class="
-              viewMode === 'treemap'
+              viewMode !== 'tier'
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : showComparison
                 ? 'bg-gray-200 text-gray-800 cursor-pointer'
@@ -57,12 +57,39 @@
                 : "Compare to Baseline"
             }}
           </button>
-          <button
-            @click="toggleView"
-            class="px-5 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer transition-colors bg-blue-500 text-white hover:bg-blue-600"
-          >
-            Switch to {{ viewMode === "tier" ? "Treemap" : "Tier Grid" }}
-          </button>
+          <div class="flex gap-2 items-center">
+            <label class="text-sm font-semibold text-gray-700">View:</label>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                value="tier"
+                v-model="viewMode"
+                @change="switchView"
+                class="cursor-pointer"
+              />
+              <span class="text-sm">Tier Grid</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                value="treemap"
+                v-model="viewMode"
+                @change="switchView"
+                class="cursor-pointer"
+              />
+              <span class="text-sm">Treemap</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                value="barplot"
+                v-model="viewMode"
+                @change="switchView"
+                class="cursor-pointer"
+              />
+              <span class="text-sm">Equity Bar Plot</span>
+            </label>
+          </div>
         </div>
       </div>
       <div class="flex-1 overflow-auto">
@@ -107,7 +134,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="js">
 import { ref, onMounted, watch } from "vue";
 import * as d3 from "d3";
 import {
@@ -117,13 +144,17 @@ import {
   fetchGeoShapes,
 } from "../utils";
 
+import {
+  calculateBarPlotPositions, calculateTierPositions, calculateTreemapPositions
+} from "../UnitVisPositionCalculation"
+
 const emit = defineEmits(["polygon-select"]);
 
 const svgRef = ref(null);
 const currentScenario = ref("s0011");
 const baselineScenario = ref("s0020");
 const availableScenarios = ref([]);
-const viewMode = ref("tier"); // "tier" or "treemap"
+const viewMode = ref("tier");
 const showComparison = ref(false);
 const colorMode = ref("default"); // "default" or "waterVolume"
 const selectedObjectives = ref([]);
@@ -134,6 +165,7 @@ let tierShortList = [];
 let geoJSONs = {};
 
 const tiers = ["Tier 1", "Tier 2", "Tier 3", "Tier 4"];
+const margin = { top: 60, right: 50, bottom: 150, left: 100 };
 
 const colors = {
   grayColor: "#D1D5DB",
@@ -190,11 +222,10 @@ const drawAllPolygonsForCategory = (categoryName) => {
   emit("polygon-select", geoJSONs[short_code]["features"]);
 };
 
-const toggleView = () => {
-  viewMode.value = viewMode.value === "tier" ? "treemap" : "tier";
-  console.log("Toggled view mode to:", viewMode.value);
-  // Disable comparison mode when switching to treemap
-  if (viewMode.value === "treemap" && showComparison.value) {
+const switchView = () => {
+  console.log("Switched view mode to:", viewMode.value);
+  // Disable comparison mode when switching away from tier mode
+  if (viewMode.value !== "tier" && showComparison.value) {
     showComparison.value = false;
     initializeVisualization(true); // Animate when switching modes
   } else {
@@ -208,193 +239,60 @@ const toggleComparison = () => {
   initializeVisualization(false);
 };
 
-const calculateTierPositions = (width, height) => {
-  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
-  const gridWidth = width - margin.left - margin.right;
-  const gridHeight = height - margin.top - margin.bottom;
-
-  const cellWidth = gridWidth / categories.length;
-  const cellHeight = gridHeight / tiers.length;
-  const dotSize = 16;
-  const spacing = dotSize * 1.2;
-  const dotsPerRow = Math.floor((cellWidth - spacing / 2) / spacing);
-
-  const positions = [];
-
-  if (!showComparison.value) {
-    // Normal mode
-    const grouped = d3.group(
-      objectives,
-      (d) => d.tier,
-      (d) => d.category
-    );
-
-    tiers.forEach((tier, tierIndex) => {
-      categories.forEach((category, catIndex) => {
-        const cellObjectives = grouped.get(tier)?.get(category) || [];
-        cellObjectives.forEach((obj, idx) => {
-          const row = Math.floor(idx / dotsPerRow);
-          const col = idx % dotsPerRow;
-          const x =
-            margin.left + catIndex * cellWidth + col * spacing + dotSize;
-          const y =
-            margin.top + tierIndex * cellHeight + row * spacing + dotSize;
-
-          positions.push({
-            id: obj.id,
-            x: x - dotSize / 2,
-            y: y - dotSize / 2,
-            width: dotSize,
-            height: dotSize,
-            obj: obj,
-            shape: "rect",
-          });
-        });
-      });
-    });
-  } else {
-    // Comparison mode with triangles
-    tiers.forEach((tier, tierIndex) => {
-      categories.forEach((category, catIndex) => {
-        const categoryObjectives = objectives.filter(
-          (obj) => obj.category === category
-        );
-
-        let currentObjectives = categoryObjectives.filter(
-          (obj) => obj.tier === tier
-        );
-
-        currentObjectives.sort((a, b) => {
-          const aTierNum = tiers.indexOf(a.tier);
-          const aBaselineNum = tiers.indexOf(a.baselineTier);
-          const bTierNum = tiers.indexOf(b.tier);
-          const bBaselineNum = tiers.indexOf(b.baselineTier);
-
-          const aChange =
-            aTierNum < aBaselineNum ? -1 : aTierNum === aBaselineNum ? 0 : 1;
-          const bChange =
-            bTierNum < bBaselineNum ? -1 : bTierNum === bBaselineNum ? 0 : 1;
-
-          return aChange - bChange;
-        });
-
-        const movedAwayObjectives = categoryObjectives.filter(
-          (obj) => obj.baselineTier === tier && obj.tier !== tier
-        );
-
-        let dotIndex = 0;
-
-        // Current objectives
-        currentObjectives.forEach((obj) => {
-          const row = Math.floor(dotIndex / dotsPerRow);
-          const col = dotIndex % dotsPerRow;
-          const x =
-            margin.left + catIndex * cellWidth + col * spacing + dotSize;
-          const y =
-            margin.top + tierIndex * cellHeight + row * spacing + dotSize;
-
-          const currentTierNum = tiers.indexOf(obj.tier);
-          const baselineTierNum = tiers.indexOf(obj.baselineTier);
-
-          let shape = "rect";
-          if (currentTierNum < baselineTierNum) {
-            shape = "triangle-up";
-          } else if (currentTierNum > baselineTierNum) {
-            shape = "triangle-down";
-          }
-
-          positions.push({
-            id: obj.id,
-            x: x - dotSize / 2,
-            y: y - dotSize / 2,
-            width: dotSize,
-            height: dotSize,
-            obj: obj,
-            shape: shape,
-          });
-
-          dotIndex++;
-        });
-
-        // Moved away objectives (baseline positions)
-        movedAwayObjectives.forEach((obj, idx) => {
-          const row = Math.floor(idx / dotsPerRow);
-          const col = idx % dotsPerRow;
-          const x =
-            margin.left + catIndex * cellWidth + col * spacing + dotSize;
-          const y =
-            margin.top +
-            tierIndex * cellHeight +
-            cellHeight -
-            (row + 1) * spacing;
-
-          positions.push({
-            id: `baseline-${obj.id}`,
-            x: x - dotSize / 2,
-            y: y - dotSize / 2,
-            width: dotSize,
-            height: dotSize,
-            obj: obj,
-            shape: "baseline-rect",
-          });
-        });
-      });
-    });
-  }
-
-  return positions;
-};
-
-const calculateTreemapPositions = (width, height) => {
-  const groupedByCategory = d3.group(objectives, (d) => d.category);
-
-  const data = {
-    name: "root",
-    children: Array.from(groupedByCategory, ([category, objs]) => ({
-      name: category,
-      children: objs.map((obj) => ({
-        name: `${obj.id}`,
-        value: obj.waterVolume,
-        obj: obj,
-      })),
-    })),
-  };
-
-  const root = d3
-    .hierarchy(data)
-    .sum((d) => d.value)
-    .sort((a, b) => b.value - a.value);
-
-  d3.treemap().size([width, height]).padding(2).round(true)(root);
-
-  const positions = [];
-  root.leaves().forEach((d) => {
-    positions.push({
-      id: d.data.obj.id,
-      x: d.x0,
-      y: d.y0,
-      width: d.x1 - d.x0,
-      height: d.y1 - d.y0,
-      obj: d.data.obj,
-      shape: "rect",
-    });
-  });
-
-  return positions;
-};
 
 const drawLabelsAndGrid = (width, height) => {
-  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
 
   const cellWidth = gridWidth / categories.length;
   const cellHeight = gridHeight / tiers.length;
 
-  // Remove old labels
+  // Remove old labels and axes
   svg.selectAll(".tier-label").remove();
   svg.selectAll(".category-label-group").remove();
   svg.selectAll(".grid-line").remove();
+  svg.selectAll(".y-axis").remove();
+  svg.selectAll(".axis-label").remove();
+
+  // Draw y-axis for barplot mode
+  if (viewMode.value === "barplot") {
+    const plotHeight = height - margin.top - margin.bottom;
+    const maxUnmetDemand = d3.max(objectives, (d) => d.unmetDemand);
+
+    // Create y-scale
+    const yScale = d3
+      .scaleLinear()
+      .domain([0, maxUnmetDemand])
+      .range([margin.top + plotHeight, margin.top]);
+
+    // Create y-axis
+    const yAxis = d3
+      .axisLeft(yScale)
+      .ticks(5)
+      .tickFormat((d) => `${d}`);
+
+    // Append y-axis
+    svg
+      .append("g")
+      .attr("class", "y-axis")
+      .attr("transform", `translate(${margin.left}, 0)`)
+      .call(yAxis)
+      .style("font-size", "11px");
+
+    // Y-axis label
+    svg
+      .append("text")
+      .attr("class", "axis-label")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -(margin.top + plotHeight / 2))
+      .attr("y", margin.left - 40)
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .style("font-weight", "600")
+      .text("Unmet Demand (TAF)");
+
+    return;
+  }
 
   if (viewMode.value !== "tier") return;
 
@@ -535,7 +433,6 @@ const drawLabelsAndGrid = (width, height) => {
 };
 
 const drawTierBackgrounds = (width, height) => {
-  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
   const cellHeight = gridHeight / tiers.length;
@@ -562,8 +459,6 @@ const drawTierBackgrounds = (width, height) => {
 };
 
 const drawLegends = (width, height) => {
-  const margin = { top: 60, right: 50, bottom: 150, left: 100 };
-
   // Remove old legends
   svg.selectAll(".legend-item").remove();
   svg.selectAll(".legend-gradient").remove();
@@ -726,6 +621,25 @@ const drawLegends = (width, height) => {
       .style("font-size", "0.8rem")
       .text(`${Math.round(waterVolumeExtent[1])} TAF`);
   }
+
+  // Bar plot legend (when in barplot mode and not in water volume color mode)
+  if (viewMode.value === "barplot" && colorMode.value !== "waterVolume") {
+    const unmetDemandExtent = d3.extent(objectives, (d) => d.unmetDemand);
+
+    const legendX = margin.left;
+    const legendY = height - margin.bottom + 60;
+
+    // Title
+    svg
+      .append("text")
+      .attr("class", "legend-item")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .style("font-size", "1rem")
+      .style("font-weight", "600")
+      .text("Bar Height = Unmet Demand or similar metric that determines the amount of water required to meet some equity definition")
+
+  }
 };
 
 const animateTransition = (shouldAnimate = true) => {
@@ -736,7 +650,7 @@ const animateTransition = (shouldAnimate = true) => {
   const width = containerRect?.width || 800;
   const height = containerRect?.height || 600;
 
-  const duration = shouldAnimate ? 1000 : 0;
+  const duration = shouldAnimate ? 1500 : 0;
 
   // Animate tier backgrounds
   svg
@@ -751,11 +665,13 @@ const animateTransition = (shouldAnimate = true) => {
   // Draw legends
   drawLegends(width, height);
 
-  const tierPositions = calculateTierPositions(width, height);
-  const treemapPositions = calculateTreemapPositions(width, height);
+  const tierPositions = calculateTierPositions(objectives, categories, tiers, width, height, showComparison.value);
+  const treemapPositions = calculateTreemapPositions(objectives, width, height);
+  const barPlotPositions = calculateBarPlotPositions(objectives, width, height);
 
   const tierPosMap = new Map(tierPositions.map((p) => [p.id, p]));
   const treemapPosMap = new Map(treemapPositions.map((p) => [p.id, p]));
+  const barPlotPosMap = new Map(barPlotPositions.map((p) => [p.id, p]));
 
   // Color scale
   const waterVolumeExtent = d3.extent(objectives, (d) => d.waterVolume);
@@ -770,8 +686,8 @@ const animateTransition = (shouldAnimate = true) => {
       return colorScale(d.waterVolume);
     }
 
-    // Treemap mode - color by category
-    if (targetMode === "treemap") {
+    // Treemap and barplot modes - color by category
+    if (targetMode === "treemap" || targetMode === "barplot") {
       return categoryColorScale(d.category);
     }
 
@@ -815,7 +731,12 @@ const animateTransition = (shouldAnimate = true) => {
   };
 
   // Update shapes
-  const allData = viewMode.value === "tier" ? tierPositions : treemapPositions;
+  const allData =
+    viewMode.value === "tier"
+      ? tierPositions
+      : viewMode.value === "treemap"
+      ? treemapPositions
+      : barPlotPositions;
   const shapes = svg.selectAll(".animated-shape").data(allData, (d) => d.id);
 
   // Enter
@@ -830,10 +751,16 @@ const animateTransition = (shouldAnimate = true) => {
 
   // Set initial positions
   enterShapes.each(function (d) {
-    const startPos =
-      viewMode.value === "treemap"
-        ? tierPosMap.get(d.id)
-        : treemapPosMap.get(d.id);
+    // Start from a different view mode
+    let startPos;
+    if (viewMode.value === "tier") {
+      startPos = treemapPosMap.get(d.id) || barPlotPosMap.get(d.id);
+    } else if (viewMode.value === "treemap") {
+      startPos = tierPosMap.get(d.id) || barPlotPosMap.get(d.id);
+    } else {
+      // barplot
+      startPos = tierPosMap.get(d.id) || treemapPosMap.get(d.id);
+    }
     if (!startPos) return;
 
     const path = createPath(d.obj, startPos);
@@ -863,12 +790,16 @@ const animateTransition = (shouldAnimate = true) => {
   allShapes
     .transition()
     .duration(duration)
-    .ease(d3.easeCubicInOut)
+    .ease(d3.easeCubicOut)
     .attr("d", (d) => {
-      const targetPos =
-        viewMode.value === "treemap"
-          ? treemapPosMap.get(d.id)
-          : tierPosMap.get(d.id);
+      let targetPos;
+      if (viewMode.value === "tier") {
+        targetPos = tierPosMap.get(d.id);
+      } else if (viewMode.value === "treemap") {
+        targetPos = treemapPosMap.get(d.id);
+      } else {
+        targetPos = barPlotPosMap.get(d.id);
+      }
       if (!targetPos) return "";
 
       const path = createPath(d.obj, targetPos);
@@ -963,6 +894,54 @@ const animateTransition = (shouldAnimate = true) => {
   } else {
     // Remove labels when not in treemap mode
     svg.selectAll(".treemap-label").remove();
+  }
+
+  // Add labels for barplot mode
+  if (viewMode.value === "barplot") {
+    const labelData = allData;
+    const labels = svg.selectAll(".barplot-label").data(labelData, (d) => d.id);
+
+    // Enter new labels
+    const enterLabels = labels
+      .enter()
+      .append("text")
+      .attr("class", "barplot-label")
+      .attr("text-anchor", "middle")
+      .attr("alignment-baseline", "start")
+      .style("font-size", "9px")
+      .style("font-weight", "600")
+      .style("fill", "#333")
+      .style("pointer-events", "none")
+      .attr("opacity", 0);
+
+    // Merge and update all labels
+    const allLabels = enterLabels.merge(labels);
+
+    allLabels
+      .transition()
+      .duration(duration)
+      .attr("x", (d) => {
+        const pos = barPlotPosMap.get(d.id);
+        return pos ? pos.x + pos.width / 2 : 0;
+      })
+      .attr("y", (d) => {
+        const pos = barPlotPosMap.get(d.id);
+        return pos ? pos.y - 5 : 0; // Position above the bar
+      })
+      .attr("opacity", 1)
+      .text((d) => {
+        const pos = barPlotPosMap.get(d.id);
+        // Show abbreviated category name if bar is narrow
+        if (pos && pos.width > 15) {
+          return d.obj.category.substring(0, 3); // First 3 chars
+        }
+        return "";
+      });
+
+    labels.exit().remove();
+  } else {
+    // Remove labels when not in barplot mode
+    svg.selectAll(".barplot-label").remove();
   }
 };
 
