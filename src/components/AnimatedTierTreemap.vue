@@ -369,10 +369,11 @@ const drawLabelsAndGrid = (width, height) => {
     .attr("class", "category-label-group")
     .attr(
       "transform",
-      (_d, i) =>
-        `translate(${margin.left + i * cellWidth + cellWidth / 2}, ${
-          margin.top + gridHeight + 25
-        })`
+      (_d, i) => {
+        const x_trans = margin.left + i * cellWidth + cellWidth / 2;
+        const y_trans = margin.top + gridHeight + 25;
+        return `translate(${x_trans}, ${y_trans}) rotate(90)`;
+      }
     )
     .style("cursor", "pointer");
 
@@ -391,7 +392,7 @@ const drawLabelsAndGrid = (width, height) => {
     const text = group
       .append("text")
       .attr("class", "category-label")
-      .attr("text-anchor", "middle")
+      .attr("text-anchor", "start")
       .attr("y", 0)
       .style("font-size", "0.875rem")
       .style("font-weight", "500")
