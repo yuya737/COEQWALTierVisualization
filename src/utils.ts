@@ -1,5 +1,6 @@
 // Use CORS proxy (temporary solution for GitHub Pages deployment)
-const API_ROOT = "https://corsproxy.io/?https://api.coeqwal.org/api";
+// const API_ROOT = "https://corsproxy.io/?https://api.coeqwal.org/api";
+const API_ROOT = "https://api.coeqwal.org/api";
 
 export const calculateMeanTier = (objectives: any[]): number => {
   if (!objectives || objectives.length === 0) {
@@ -26,14 +27,16 @@ const processSingleValueData = (tierData: any) => {
 const processMultiValueData = (tierData: any) => {
   const data = tierData.data;
   const ret: any[] = [];
+  let counter = 0;
   Object.keys(data).forEach((key) => {
     let currentTier = parseInt(key) + 1; // tiers are 1-indexed
     for (let i = 0; i < data[key]["value"]; i++) {
       ret.push({
         category: tierData.name,
         tier: currentTier,
-        withinCategoryIndex: i,
+        withinCategoryIndex: counter,
       });
+      counter++;
     }
   });
   console.log(ret);

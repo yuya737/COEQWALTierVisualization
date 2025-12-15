@@ -175,10 +175,10 @@ const colors = {
 };
 
 const tierColorMap = {
-  "Tier 1": [236, 253, 245, 255],   // Light green
-  "Tier 2": [239, 246, 255, 255],  // Light blue
-  "Tier 3": [254, 252, 232, 255],  // Light yellow
-  "Tier 4": [254, 242, 242, 255],   // Light red
+  "Tier 1": [74, 200, 167],    // Muted green
+  "Tier 2": [120, 165, 250],   // Muted blue
+  "Tier 3": [253, 212, 103],   // Muted yellow
+  "Tier 4": [244, 126, 126],   // Muted red
 };
 
 // Category color scale
@@ -198,6 +198,7 @@ const drawPolygonsOnMap = (objective) => {
     return;
   }
   const withinCategoryIndex = objective.withinCategoryIndex;
+  console.log("Drawing polygon for objective:", objective, short_code, withinCategoryIndex);
   const polygonswithoutColor =
     geoJSONs[short_code]["features"][
       withinCategoryIndex % geoJSONs[short_code]["features"].length
@@ -236,13 +237,19 @@ const drawAllPolygonsForCategory = (categoryName) => {
   );
   selectedObjectives.value = categoryObjectives;
 
-  const polygonsWithColor = {
-    ...geoJSONs[short_code]["features"],
-    properties: {
-      ...geoJSONs[short_code]["features"].properties,
-      fillColor: tierColorMap[categoryName]
-    },
-  };
+  // debugger
+  const polygonsWithColor = geoJSONs[short_code]["features"].map((feature, index) => {
+    const obj = categoryObjectives[index % categoryObjectives.length];
+    return {
+      ...feature,
+      properties: {
+        ...feature.properties,
+        fillColor: tierColorMap[obj.tier]
+      },
+    };
+  });
+
+  console.log("Polygons for category:", categoryName, polygonsWithColor);
 
   emit("polygon-select", polygonsWithColor);
 };
@@ -1025,6 +1032,7 @@ onMounted(async () => {
     const geoShapes = await fetchGeoShapes(tier.short_code);
     geoJSONs[tier.short_code] = geoShapes;
   }
+  console.log("Loaded geoshapes:", geoJSONs);
 
   await loadData();
 });
