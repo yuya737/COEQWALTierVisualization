@@ -1,135 +1,90 @@
 <template>
-  <div class="w-full h-full bg-white p-5 relative flex flex-row gap-4">
-    <div class="flex-1 flex flex-col overflow-hidden">
-      <div class="flex justify-between items-center mb-5 mt-3">
-        <h2 class="text-2xl font-semibold text-gray-800 m-0">
+  <div
+    class="w-full h-full bg-white p-5 relative flex flex-col overflow-hidden"
+  >
+    <div class="flex justify-between items-center mb-5 mt-3">
+      <h2 class="text-2xl font-semibold text-gray-800 m-0">
+        {{
+          showComparison
+            ? `Viewing scenario ${currentScenario} against ${baselineScenario}`
+            : `Viewing scenario ${currentScenario}`
+        }}
+      </h2>
+      <div class="flex gap-3 justify-end">
+        <select
+          v-model="currentScenario"
+          class="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <option
+            v-for="scenario in availableScenarios"
+            :key="scenario.scenario_code"
+            :value="scenario.scenario_code"
+          >
+            {{ scenario.scenario_code }}
+          </option>
+        </select>
+        <select
+          v-model="colorMode"
+          class="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <option value="default">Default</option>
+          <option value="tier">Tier Colors</option>
+          <option value="category">Category Colors</option>
+          <option value="waterVolume">Water Volume Colors</option>
+        </select>
+        <button
+          @click="toggleComparison"
+          :disabled="viewMode !== 'tier'"
+          class="px-5 py-2.5 border border-gray-300 rounded-md text-sm font-semibold transition-colors"
+          :class="
+            viewMode !== 'tier'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : showComparison
+              ? 'bg-gray-200 text-gray-800 cursor-pointer'
+              : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
+          "
+        >
           {{
-            showComparison
-              ? `Viewing scenario ${currentScenario} against ${baselineScenario}`
-              : `Viewing scenario ${currentScenario}`
+            showComparison ? "Hide Baseline Comparison" : "Compare to Baseline"
           }}
-        </h2>
-        <div class="flex gap-3 justify-end">
-          <select
-            v-model="currentScenario"
-            class="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <option
-              v-for="scenario in availableScenarios"
-              :key="scenario.scenario_code"
-              :value="scenario.scenario_code"
-            >
-              {{ scenario.scenario_code }}
-            </option>
-          </select>
-          <button
-            @click="
-              colorMode = colorMode === 'default' ? 'waterVolume' : 'default'
-            "
-            class="px-5 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer transition-colors"
-            :class="
-              colorMode === 'waterVolume'
-                ? 'bg-blue-100 text-blue-800 border-blue-300'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            "
-          >
-            {{
-              colorMode === "waterVolume"
-                ? "Category Colors"
-                : "Water Volume Colors"
-            }}
-          </button>
-          <button
-            @click="toggleComparison"
-            :disabled="viewMode !== 'tier'"
-            class="px-5 py-2.5 border border-gray-300 rounded-md text-sm font-semibold transition-colors"
-            :class="
-              viewMode !== 'tier'
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : showComparison
-                ? 'bg-gray-200 text-gray-800 cursor-pointer'
-                : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
-            "
-          >
-            {{
-              showComparison
-                ? "Hide Baseline Comparison"
-                : "Compare to Baseline"
-            }}
-          </button>
-          <div class="flex gap-2 items-center">
-            <label class="text-sm font-semibold text-gray-700">View:</label>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                value="tier"
-                v-model="viewMode"
-                @change="switchView"
-                class="cursor-pointer"
-              />
-              <span class="text-sm">Tier Grid</span>
-            </label>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                value="treemap"
-                v-model="viewMode"
-                @change="switchView"
-                class="cursor-pointer"
-              />
-              <span class="text-sm">Treemap</span>
-            </label>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                value="barplot"
-                v-model="viewMode"
-                @change="switchView"
-                class="cursor-pointer"
-              />
-              <span class="text-sm">Equity Bar Plot</span>
-            </label>
-          </div>
+        </button>
+        <div class="flex gap-2 items-center">
+          <label class="text-sm font-semibold text-gray-700">View:</label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="radio"
+              value="tier"
+              v-model="viewMode"
+              @change="switchView"
+              class="cursor-pointer"
+            />
+            <span class="text-sm">Tier Grid</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="radio"
+              value="treemap"
+              v-model="viewMode"
+              @change="switchView"
+              class="cursor-pointer"
+            />
+            <span class="text-sm">Treemap</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="radio"
+              value="barplot"
+              v-model="viewMode"
+              @change="switchView"
+              class="cursor-pointer"
+            />
+            <span class="text-sm">Equity Bar Plot</span>
+          </label>
         </div>
-      </div>
-      <div class="flex-1 overflow-auto">
-        <svg ref="svgRef"></svg>
       </div>
     </div>
-
-    <div
-      class="w-80 border-l border-gray-200 pl-4 flex flex-col overflow-hidden"
-    >
-      <h3 class="text-lg font-semibold mb-3 text-gray-800 shrink-0">
-        Selected Objectives
-      </h3>
-      <div class="flex-1 overflow-y-auto pr-2 min-h-0">
-        <div
-          v-if="selectedObjectives.length === 0"
-          class="text-gray-500 text-sm"
-        >
-          Click on a cell or category to see objectives
-        </div>
-        <div v-else class="space-y-2">
-          <div
-            v-for="obj in selectedObjectives"
-            :key="obj.id"
-            class="p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors"
-          >
-            <div class="text-sm font-semibold text-gray-800">
-              {{ obj.category }}
-            </div>
-            <div class="text-xs text-gray-600 mt-1">
-              <span class="font-medium">ID:</span> {{ obj.id }} |
-              <span class="font-medium">Tier:</span> {{ obj.tier }}
-              <span v-if="obj.baselineTier">
-                | <span class="font-medium">Baseline:</span>
-                {{ obj.baselineTier }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="flex-1 overflow-auto">
+      <svg ref="svgRef"></svg>
     </div>
   </div>
 </template>
@@ -143,12 +98,14 @@ import {
   fetchShortCodes,
   fetchGeoShapes,
 } from "../utils";
+import GW_STOR from "../GW_STOR"
+import RES_STOR from "../RES_STOR";
 
 import {
-  calculateBarPlotPositions, calculateTierPositions, calculateTreemapPositions
+  calculateBarPlotPositions, calculateTierPositions, calculateTreemapPositions, calculateCategoryWidths
 } from "../UnitVisPositionCalculation"
 
-const emit = defineEmits(["polygon-select"]);
+const emit = defineEmits(["polygon-select", "objectives-select"]);
 
 const svgRef = ref(null);
 const currentScenario = ref("s0011");
@@ -156,7 +113,7 @@ const baselineScenario = ref("s0020");
 const availableScenarios = ref([]);
 const viewMode = ref("tier");
 const showComparison = ref(false);
-const colorMode = ref("default"); // "default" or "waterVolume"
+const colorMode = ref("default"); // "default", "tier", "category", or "waterVolume"
 const selectedObjectives = ref([]);
 let objectives = [];
 let categories = [];
@@ -182,7 +139,7 @@ const tierColorMap = {
 };
 
 // Category color scale
-const categoryColorScale = d3.scaleOrdinal(d3.schemeSet3);
+const categoryColorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
 // Function to trigger polygon drawing in MapView
 const drawPolygonsOnMap = (objective) => {
@@ -222,6 +179,7 @@ const drawAllPolygonsForCategory = (categoryName) => {
   if (!categoryName) {
     emit("polygon-select", []);
     selectedObjectives.value = [];
+    emit("objectives-select", []);
     return;
   }
   const short_code = tierShortList.find(
@@ -236,6 +194,7 @@ const drawAllPolygonsForCategory = (categoryName) => {
     (obj) => obj.category === categoryName
   );
   selectedObjectives.value = categoryObjectives;
+  emit("objectives-select", categoryObjectives);
 
   // debugger
   const polygonsWithColor = geoJSONs[short_code]["features"].map((feature, index) => {
@@ -276,7 +235,6 @@ const drawLabelsAndGrid = (width, height) => {
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
 
-  const cellWidth = gridWidth / categories.length;
   const cellHeight = gridHeight / tiers.length;
 
   // Remove old labels and axes
@@ -328,19 +286,34 @@ const drawLabelsAndGrid = (width, height) => {
 
   if (viewMode.value !== "tier") return;
 
-  // Grid lines
-  categories.forEach((_, i) => {
+  // Calculate variable category widths
+  const categoryLayouts = calculateCategoryWidths(objectives, categories, gridWidth);
+
+  // Grid lines - vertical lines at category boundaries
+  categoryLayouts.forEach((layout, i) => {
     svg
       .append("line")
       .attr("class", "grid-line")
-      .attr("x1", margin.left + i * cellWidth)
+      .attr("x1", margin.left + layout.startX)
       .attr("y1", margin.top)
-      .attr("x2", margin.left + i * cellWidth)
+      .attr("x2", margin.left + layout.startX)
       .attr("y2", margin.top + gridHeight)
       .attr("stroke", "#D1D5DB")
       .attr("stroke-width", 1);
   });
 
+  // Add final vertical line at the end
+  svg
+    .append("line")
+    .attr("class", "grid-line")
+    .attr("x1", margin.left + gridWidth)
+    .attr("y1", margin.top)
+    .attr("x2", margin.left + gridWidth)
+    .attr("y2", margin.top + gridHeight)
+    .attr("stroke", "#D1D5DB")
+    .attr("stroke-width", 1);
+
+  // Horizontal grid lines
   tiers.forEach((_, i) => {
     svg
       .append("line")
@@ -370,16 +343,16 @@ const drawLabelsAndGrid = (width, height) => {
   // Category labels
   const categoryGroups = svg
     .selectAll(".category-label-group")
-    .data(categories)
+    .data(categoryLayouts)
     .enter()
     .append("g")
     .attr("class", "category-label-group")
     .attr(
       "transform",
-      (_d, i) => {
-        const x_trans = margin.left + i * cellWidth + cellWidth / 2;
+      (layout) => {
+        const x_trans = margin.left + layout.startX + layout.width / 2;
         const y_trans = margin.top + gridHeight + 25;
-        return `translate(${x_trans}, ${y_trans}) rotate(90)`;
+        return `translate(${x_trans}, ${y_trans})`;
       }
     )
     .style("cursor", "pointer");
@@ -399,13 +372,13 @@ const drawLabelsAndGrid = (width, height) => {
     const text = group
       .append("text")
       .attr("class", "category-label")
-      .attr("text-anchor", "start")
+      .attr("text-anchor", "middle")
       .attr("y", 0)
       .style("font-size", "0.875rem")
       .style("font-weight", "500")
       .style("fill", "#4B5563")
       .each(function (d) {
-        const words = d.split(" ");
+        const words = d.category.split(" ");
         const lineHeight = 14;
         let line = [];
         let lineNumber = 0;
@@ -460,7 +433,7 @@ const drawLabelsAndGrid = (width, height) => {
           .attr("stroke", "#E5E7EB");
       })
       .on("click", function (_event, d) {
-        drawAllPolygonsForCategory(d);
+        drawAllPolygonsForCategory(d.category);
       });
   });
 };
@@ -670,8 +643,109 @@ const drawLegends = (width, height) => {
       .attr("y", legendY)
       .style("font-size", "1rem")
       .style("font-weight", "600")
-      .text("Bar Height = Unmet Demand or similar metric that determines the amount of water required to meet some equity definition")
+      .text("Bar Height = Unmet Demand or similar metric that determines the amount of water required to meet some equity definition (Currently Random)")
 
+  }
+
+  // Category legend (when category color mode is active)
+  if (colorMode.value === "category") {
+    const legendX = margin.left;
+    const legendY = height - margin.bottom + 90;
+    const colorBoxSize = 14;
+    const itemSpacing = 15;
+    const rowSpacing = 22;
+    const itemsPerRow = Math.ceil(categories.length / 2);
+
+    // Add legend items for each category (two-row horizontal layout)
+    let currentX = legendX;
+    let currentRow = 0;
+
+    categories.forEach((category, i) => {
+      // Move to second row after half the items
+      if (i === itemsPerRow) {
+        currentX = legendX;
+        currentRow = 1;
+      }
+
+      const yPos = legendY - 10 + (currentRow * rowSpacing);
+
+      // Color box
+      svg
+        .append("rect")
+        .attr("class", "legend-item")
+        .attr("x", currentX)
+        .attr("y", yPos)
+        .attr("width", colorBoxSize)
+        .attr("height", colorBoxSize)
+        .attr("fill", categoryColorScale(category))
+        .attr("stroke", "#999")
+        .attr("stroke-width", 1);
+
+      // Category name
+      const text = svg
+        .append("text")
+        .attr("class", "legend-item")
+        .attr("x", currentX + colorBoxSize + 5)
+        .attr("y", yPos + colorBoxSize / 2)
+        .attr("alignment-baseline", "middle")
+        .style("font-size", "0.75rem")
+        .text(category);
+
+      // Calculate width of this item for next position
+      const textWidth = text.node().getComputedTextLength();
+      currentX += colorBoxSize + 5 + textWidth + itemSpacing;
+    });
+  }
+
+  // Tier legend (when tier color mode is active)
+  if (colorMode.value === "tier" && !showComparison.value) {
+    const legendX = margin.left;
+    const legendY = height - margin.bottom + 90;
+    const colorBoxSize = 14;
+    const itemSpacing = 15;
+    const rowSpacing = 22;
+    const itemsPerRow = Math.ceil(tiers.length / 2);
+
+    // Add legend items for each tier (two-row horizontal layout)
+    let currentX = legendX;
+    let currentRow = 0;
+
+    tiers.forEach((tier, i) => {
+      // Move to second row after half the items
+      if (i === itemsPerRow) {
+        currentX = legendX;
+        currentRow = 1;
+      }
+
+      const yPos = legendY - 10 + (currentRow * rowSpacing);
+      const tierColor = tierColorMap[tier];
+
+      // Color box
+      svg
+        .append("rect")
+        .attr("class", "legend-item")
+        .attr("x", currentX)
+        .attr("y", yPos)
+        .attr("width", colorBoxSize)
+        .attr("height", colorBoxSize)
+        .attr("fill", `rgb(${tierColor[0]}, ${tierColor[1]}, ${tierColor[2]})`)
+        .attr("stroke", "#999")
+        .attr("stroke-width", 1);
+
+      // Tier name
+      const text = svg
+        .append("text")
+        .attr("class", "legend-item")
+        .attr("x", currentX + colorBoxSize + 5)
+        .attr("y", yPos + colorBoxSize / 2)
+        .attr("alignment-baseline", "middle")
+        .style("font-size", "0.75rem")
+        .text(tier);
+
+      // Calculate width of this item for next position
+      const textWidth = text.node().getComputedTextLength();
+      currentX += colorBoxSize + 5 + textWidth + itemSpacing;
+    });
   }
 };
 
@@ -699,6 +773,7 @@ const animateTransition = (shouldAnimate = true) => {
   drawLegends(width, height);
 
   const tierPositions = calculateTierPositions(objectives, categories, tiers, width, height, showComparison.value);
+  console.log("Calculated tier positions:", tierPositions);
   const treemapPositions = calculateTreemapPositions(objectives, width, height);
   const barPlotPositions = calculateBarPlotPositions(objectives, width, height);
 
@@ -719,26 +794,54 @@ const animateTransition = (shouldAnimate = true) => {
       return colorScale(d.waterVolume);
     }
 
-    // Treemap and barplot modes - color by category
-    if (targetMode === "treemap" || targetMode === "barplot") {
+    // Category mode - always use category colors
+    if (colorMode.value === "category") {
       return categoryColorScale(d.category);
     }
 
-    // Tier mode - comparison colors
-    if (!showComparison.value) {
+    // Tier mode
+    if (colorMode.value === "tier") {
+      // In comparison mode, use comparison colors
+      if (showComparison.value) {
+        const currentTierNum = tiers.indexOf(d.tier);
+        const baselineTierNum = tiers.indexOf(d.baselineTier);
+
+        if (currentTierNum === baselineTierNum) {
+          return colors.lightBlue;
+        } else if (currentTierNum < baselineTierNum) {
+          return colors.defaultBlue;
+        } else {
+          return colors.redColor;
+        }
+      }
+
+      // In normal mode, use tier colors
+      const tierColor = tierColorMap[d.tier];
+      if (tierColor) {
+        return `rgb(${tierColor[0]}, ${tierColor[1]}, ${tierColor[2]})`;
+      }
       return colors.defaultBlue;
     }
 
-    const currentTierNum = tiers.indexOf(d.tier);
-    const baselineTierNum = tiers.indexOf(d.baselineTier);
+    // Default mode - use default blue (or comparison colors if in comparison mode)
+    if (colorMode.value === "default") {
+      if (showComparison.value) {
+        const currentTierNum = tiers.indexOf(d.tier);
+        const baselineTierNum = tiers.indexOf(d.baselineTier);
 
-    if (currentTierNum === baselineTierNum) {
-      return colors.lightBlue;
-    } else if (currentTierNum < baselineTierNum) {
+        if (currentTierNum === baselineTierNum) {
+          return colors.lightBlue;
+        } else if (currentTierNum < baselineTierNum) {
+          return colors.defaultBlue;
+        } else {
+          return colors.redColor;
+        }
+      }
       return colors.defaultBlue;
-    } else {
-      return colors.redColor;
     }
+
+    // Fallback
+    return colors.defaultBlue;
   };
 
   // Create shape paths
@@ -861,6 +964,7 @@ const animateTransition = (shouldAnimate = true) => {
     .on("mouseover", function (event, d) {
       d3.select(this).attr("stroke", "#333").attr("stroke-width", 3);
       selectedObjectives.value = [d.obj];
+      emit("objectives-select", [d.obj]);
       drawPolygonsOnMap(d.obj);
     })
     .on("mouseout", function (event, d) {
@@ -876,6 +980,7 @@ const animateTransition = (shouldAnimate = true) => {
         )
         .attr("stroke-width", isBaseline ? 3 : 1);
       selectedObjectives.value = [];
+      emit("objectives-select", []);
       drawPolygonsOnMap();
     });
 
@@ -914,13 +1019,63 @@ const animateTransition = (shouldAnimate = true) => {
         return pos ? pos.y + pos.height / 2 : 0;
       })
       .attr("opacity", 1)
-      .text((d) => {
+      .on("end", function(d) {
         const pos = treemapPosMap.get(d.id);
+        const textElement = d3.select(this);
+
+        // Clear any existing tspans and text
+        textElement.selectAll("tspan").remove();
+        textElement.text("");
+
         // Only show label if cell is large enough
-        if (pos && pos.width > 50 && pos.height > 20) {
-          return d.obj.category;
+        if (!pos || pos.width <= 50 || pos.height <= 20) {
+          return;
         }
-        return "";
+
+        const words = d.obj.category.split(" ");
+        const lineHeight = 12;
+        const maxWidth = 50;
+        const lines = [];
+        let currentLine = [];
+
+        // Create a temporary text element for measurement
+        const tempText = svg.append("text")
+          .style("font-size", "10px")
+          .style("font-weight", "600")
+          .style("visibility", "hidden");
+
+        words.forEach((word) => {
+          currentLine.push(word);
+          tempText.text(currentLine.join(" "));
+          const textWidth = tempText.node().getComputedTextLength();
+
+          if (textWidth > maxWidth && currentLine.length > 1) {
+            // Line is too long, remove last word and start new line
+            currentLine.pop();
+            lines.push(currentLine.join(" "));
+            currentLine = [word];
+          }
+        });
+
+        // Add remaining words
+        if (currentLine.length > 0) {
+          lines.push(currentLine.join(" "));
+        }
+
+        // Remove temporary text
+        tempText.remove();
+
+        // Calculate vertical offset to center multi-line text
+        const totalHeight = lines.length * lineHeight;
+        const startYOffset = -(totalHeight - lineHeight) / 2;
+
+        // Add tspans for each line
+        lines.forEach((lineText, i) => {
+          textElement.append("tspan")
+            .attr("x", pos.x + pos.width / 2)
+            .attr("dy", i === 0 ? startYOffset : lineHeight)
+            .text(lineText);
+        });
       });
 
     labels.exit().remove();
@@ -1029,8 +1184,18 @@ onMounted(async () => {
 
   // Fetch geoshapes for each tier
   for (const tier of tierShortList) {
-    const geoShapes = await fetchGeoShapes(tier.short_code);
-    geoJSONs[tier.short_code] = geoShapes;
+    console.log("Fetching geoshapes for tier:", tier.short_code, "Type:", typeof tier.short_code);
+    if (tier.short_code === 'GW_STOR'){
+      console.log("SSDF - Using local GW_STOR data");
+      const geoShapes = GW_STOR;
+      geoJSONs[tier.short_code] = geoShapes;
+    } else if (tier.short_code === 'RES_STOR'){
+      const geoShapes = RES_STOR;
+      geoJSONs[tier.short_code] = geoShapes;
+    } else {
+      const geoShapes = await fetchGeoShapes(tier.short_code);
+      geoJSONs[tier.short_code] = geoShapes;
+    }
   }
   console.log("Loaded geoshapes:", geoJSONs);
 

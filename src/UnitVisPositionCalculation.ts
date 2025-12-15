@@ -2,6 +2,94 @@ import * as d3 from "d3";
 
 const margin = { top: 60, right: 50, bottom: 150, left: 100 };
 
+export interface CategoryLayout {
+  category: string;
+  width: number;
+  startX: number;
+}
+
+export const calculateCategoryWidths = (
+  objectives: Objective[],
+  categories: string[],
+  gridWidth: number
+): CategoryLayout[] => {
+  const dotSize = 16;
+  const spacing = dotSize * 1.2; // 19.2
+  // const MIN_CATEGORY_WIDTH = spacing * 1.5; // ~29px - ensures at least 1 dot fits
+  const MIN_CATEGORY_WIDTH = 120;
+
+  const categoryObjectiveCounts = new Map<string, number>();
+  categories.forEach((category) => {
+    const count = objectives.filter((obj) => obj.category === category).length;
+    categoryObjectiveCounts.set(category, count);
+  });
+
+  const totalObjectives = objectives.length;
+
+  // First pass: calculate proportional widths
+  const proportionalWidths = new Map<string, number>();
+  categories.forEach((category) => {
+    const count = categoryObjectiveCounts.get(category) || 0;
+    const proportion = count / totalObjectives;
+    const categoryWidth = gridWidth * proportion;
+    proportionalWidths.set(category, categoryWidth);
+  });
+
+  // Find categories that need minimum width
+  const categoriesNeedingMin: string[] = [];
+  const categoriesAboveMin: string[] = [];
+  let totalMinWidth = 0;
+
+  categories.forEach((category) => {
+    const width = proportionalWidths.get(category) || 0;
+    if (width < MIN_CATEGORY_WIDTH) {
+      categoriesNeedingMin.push(category);
+      totalMinWidth += MIN_CATEGORY_WIDTH;
+    } else {
+      categoriesAboveMin.push(category);
+    }
+  });
+
+  // Calculate final widths
+  const finalWidths = new Map<string, number>();
+  const remainingWidth = gridWidth - totalMinWidth;
+
+  // Assign minimum width to small categories
+  categoriesNeedingMin.forEach((category) => {
+    finalWidths.set(category, MIN_CATEGORY_WIDTH);
+  });
+
+  // Redistribute remaining width proportionally among larger categories
+  if (categoriesAboveMin.length > 0 && remainingWidth > 0) {
+    const totalAboveMinObjectives = categoriesAboveMin.reduce((sum, cat) => {
+      return sum + (categoryObjectiveCounts.get(cat) || 0);
+    }, 0);
+
+    categoriesAboveMin.forEach((category) => {
+      const count = categoryObjectiveCounts.get(category) || 0;
+      const proportion = count / totalAboveMinObjectives;
+      const categoryWidth = remainingWidth * proportion;
+      finalWidths.set(category, categoryWidth);
+    });
+  }
+
+  // Build layouts with cumulative positions
+  const layouts: CategoryLayout[] = [];
+  let currentX = 0;
+
+  categories.forEach((category) => {
+    const width = finalWidths.get(category) || MIN_CATEGORY_WIDTH;
+    layouts.push({
+      category,
+      width,
+      startX: currentX,
+    });
+    currentX += width;
+  });
+
+  return layouts;
+};
+
 interface Objective {
   id: number;
   tier: string;
@@ -33,11 +121,22 @@ export const calculateTierPositions = (
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
 
-  const cellWidth = gridWidth / categories.length;
+  // Calculate category widths and positions
+  const categoryLayouts = calculateCategoryWidths(
+    objectives,
+    categories,
+    gridWidth
+  );
+  const categoryWidths = new Map(
+    categoryLayouts.map((l) => [l.category, l.width])
+  );
+  const categoryStartX = new Map(
+    categoryLayouts.map((l) => [l.category, l.startX])
+  );
+
   const cellHeight = gridHeight / tiers.length;
   const dotSize = 16;
   const spacing = dotSize * 1.2;
-  const dotsPerRow = Math.floor((cellWidth - spacing / 2) / spacing);
 
   const positions: Position[] = [];
 
@@ -53,12 +152,18 @@ export const calculateTierPositions = (
       categories.forEach((category, catIndex) => {
         const cellObjectives = grouped.get(tier)?.get(category) || [];
 
+        const cellWidth = categoryWidths.get(category) || 0;
+        const cellStartX = categoryStartX.get(category) || 0;
+        const dotsPerRow = Math.max(
+          1,
+          Math.floor((cellWidth - spacing / 2) / spacing)
+        );
+
         cellObjectives.forEach((obj, idx) => {
           const row = Math.floor(idx / dotsPerRow);
           const col = idx % dotsPerRow;
 
-          const x =
-            margin.left + catIndex * cellWidth + col * spacing + dotSize;
+          const x = margin.left + cellStartX + col * spacing + dotSize;
           const y =
             margin.top + tierIndex * cellHeight + row * spacing + dotSize;
 
@@ -80,6 +185,13 @@ export const calculateTierPositions = (
       categories.forEach((category, catIndex) => {
         const categoryObjectives = objectives.filter(
           (obj) => obj.category === category
+        );
+
+        const cellWidth = categoryWidths.get(category) || 0;
+        const cellStartX = categoryStartX.get(category) || 0;
+        const dotsPerRow = Math.max(
+          1,
+          Math.floor((cellWidth - spacing / 2) / spacing)
         );
 
         let currentObjectives = categoryObjectives.filter(
@@ -110,8 +222,7 @@ export const calculateTierPositions = (
           const row = Math.floor(dotIndex / dotsPerRow);
           const col = dotIndex % dotsPerRow;
 
-          const x =
-            margin.left + catIndex * cellWidth + col * spacing + dotSize;
+          const x = margin.left + cellStartX + col * spacing + dotSize;
           const y =
             margin.top + tierIndex * cellHeight + row * spacing + dotSize;
 
@@ -142,8 +253,7 @@ export const calculateTierPositions = (
           const row = Math.floor(dotIndex / dotsPerRow);
           const col = dotIndex % dotsPerRow;
 
-          const x =
-            margin.left + catIndex * cellWidth + col * spacing + dotSize;
+          const x = margin.left + cellStartX + col * spacing + dotSize;
           const y =
             margin.top + tierIndex * cellHeight + row * spacing + dotSize;
 
