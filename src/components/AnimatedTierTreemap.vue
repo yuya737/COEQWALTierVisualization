@@ -628,6 +628,21 @@ const drawLegends = (width, height) => {
       .text(`${Math.round(waterVolumeExtent[1])} TAF`);
   }
 
+  // Treemap note
+  if (viewMode.value === "treemap") {
+    const legendX = margin.left;
+    const legendY = height - margin.bottom + 60;
+
+    svg
+      .append("text")
+      .attr("class", "legend-item")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .style("font-size", "1rem")
+      .style("font-weight", "600")
+      .text("Box Size = Water Volume (Currently Random)");
+  }
+
   // Bar plot legend (when in barplot mode and not in water volume color mode)
   if (viewMode.value === "barplot" && colorMode.value !== "waterVolume") {
     const unmetDemandExtent = d3.extent(objectives, (d) => d.unmetDemand);
