@@ -120,6 +120,7 @@ let categories = [];
 let svg = null;
 let tierShortList = [];
 let geoJSONs = {};
+let cellLayouts = new Map();
 
 const tiers = ["Tier 1", "Tier 2", "Tier 3", "Tier 4"];
 const margin = { top: 60, right: 50, bottom: 150, left: 100 };
@@ -230,6 +231,97 @@ const toggleComparison = () => {
   initializeVisualization(false);
 };
 
+const drawTierCells = (width, height) => {
+  if (viewMode.value !== 'tier' || cellLayouts.size === 0) {
+      svg.selectAll(".tier-cell-group").remove();
+      svg.select("defs").remove();
+      return;
+  }
+  
+  // Remove existing elements before redraw
+  svg.selectAll(".tier-cell-group").remove();
+  svg.select("defs").remove();
+
+  const defs = svg.append("defs");
+  
+  const cellData = Array.from(cellLayouts.entries()).map(([key, layout]) => ({
+      key,
+      ...layout,
+  }));
+
+  // Create clip paths
+  defs
+    .selectAll(".cell-clip-path")
+    .data(cellData)
+    .enter()
+    .append("clipPath")
+    .attr("id", (d) => `clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")}`) // Generate a safe ID
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", (d) => d.width)
+    .attr("height", (d) => d.height);
+
+  // Create cell container groups (translated to the cell's top-left absolute position)
+  const cellGroups = svg
+    .selectAll(".tier-cell-group")
+    .data(cellData, (d) => d.key)
+    .enter()
+    .append("g")
+    .attr("class", "tier-cell-group")
+    .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
+    // Apply the clip-path. The clip-path rect is relative to the group's origin (0,0)
+    .attr("clip-path", (d) => `url(#clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")})`);
+
+  // --- Implement D3 Drag for Vertical Scrolling ---
+  const drag = d3
+    .drag()
+    .on("start", function(event) {
+        // Disable text selection during drag for a smoother experience
+        d3.select("body").style("cursor", "grabbing").style("user-select", "none");
+    })
+    .on("drag", function (event, d) {
+      // Find the inner content group
+      const contentGroup = d3.select(this).select(".cell-content-g");
+      if (contentGroup.empty()) return;
+
+      // Get current translation from the transform attribute
+      const transform = contentGroup.attr("transform");
+      const currentYMatch = transform ? transform.match(/translate\(\s*[^,]+,\s*([^)]+)\)/) : null;
+      const currentY = currentYMatch ? parseFloat(currentYMatch[1]) : 0;
+      
+      const newY = currentY + event.dy;
+      
+      // Calculate min and max y translation
+      const maxScroll = 0; // Top limit is 0
+      const minScroll = Math.min(0, d.height - d.contentHeight); // Max downward scroll
+
+      const clampedY = Math.max(minScroll, Math.min(maxScroll, newY));
+
+      // Apply the new vertical translation
+      contentGroup
+        .attr("transform", `translate(0, ${clampedY})`);
+    })
+    .on("end", function(event) {
+        d3.select("body").style("cursor", null).style("user-select", null);
+    })
+    .filter((event, d) => {
+        // Only enable dragging if content overflows cell height
+        return d.contentHeight > d.height;
+    });
+
+  // Apply drag behavior to the outer cell group
+  cellGroups.call(drag);
+
+  // Add the inner <g> which will contain the dots and be translated/scrolled
+  cellGroups
+    .selectAll(".cell-content-g")
+    .data((d) => [d]) // Bind the same data to create one inner group per cell group
+    .enter()
+    .append("g")
+    .attr("class", "cell-content-g")
+    .attr("transform", "translate(0, 0)"); // Initial position is 0,0 relative to the parent tier-cell-group
+};
 
 const drawLabelsAndGrid = (width, height) => {
   const gridWidth = width - margin.left - margin.right;
@@ -284,7 +376,12 @@ const drawLabelsAndGrid = (width, height) => {
     return;
   }
 
-  if (viewMode.value !== "tier") return;
+  if (viewMode.value === "tier") {
+    drawTierCells(width, height);
+  }
+  else {
+    return;
+  }
 
   // Calculate variable category widths
   const categoryLayouts = calculateCategoryWidths(objectives, categories, gridWidth);
@@ -781,13 +878,15 @@ const animateTransition = (shouldAnimate = true) => {
     .duration(duration)
     .attr("opacity", viewMode.value === "tier" ? 1 : 0);
 
+  const { positions: tierPositions, cellLayouts: newCellLayouts } = calculateTierPositions(objectives, categories, tiers, width, height, showComparison.value);
+  cellLayouts = newCellLayouts; // Update global state
+
   // Draw/remove labels and grid
   drawLabelsAndGrid(width, height);
 
   // Draw legends
   drawLegends(width, height);
 
-  const tierPositions = calculateTierPositions(objectives, categories, tiers, width, height, showComparison.value);
   console.log("Calculated tier positions:", tierPositions);
   const treemapPositions = calculateTreemapPositions(objectives, width, height);
   const barPlotPositions = calculateBarPlotPositions(objectives, width, height);
@@ -881,6 +980,18 @@ const animateTransition = (shouldAnimate = true) => {
     return null;
   };
 
+  const getTargetContainer = (d) => {
+      if (viewMode.value === 'tier') {
+          // In tier mode, shapes must go into the cell-content-g
+          const tier = d.obj.tier;
+          const category = d.obj.category;
+          const key = `${tier}-${category}`.replace(/[^a-zA-Z0-9]/g, "");
+          return svg.select(`.tier-cell-group[clip-path*='${key}'] .cell-content-g`);
+      }
+      // In other modes, shapes stay on the main svg
+      return svg;
+  };
+
   // Update shapes
   const allData =
     viewMode.value === "tier"
@@ -914,6 +1025,8 @@ const animateTransition = (shouldAnimate = true) => {
     }
     if (!startPos) return;
 
+    svg.node().appendChild(this);
+
     const path = createPath(d.obj, startPos);
     if (path) {
       d3.select(this).attr("d", path);
@@ -937,6 +1050,19 @@ const animateTransition = (shouldAnimate = true) => {
   // Merge
   const allShapes = enterShapes.merge(shapes);
 
+  allShapes.each(function (d) {
+      const targetContainer = getTargetContainer(d);
+      if (!targetContainer.empty()) {
+          // Only re-parent if the current parent is not the target container
+          if (d3.select(this.parentNode).node() !== targetContainer.node()) {
+              targetContainer.node().appendChild(this);
+          }
+      } else {
+          // Fallback: move to main SVG
+          svg.node().appendChild(this);
+      }
+  });
+
   // Transition
   allShapes
     .transition()
@@ -956,8 +1082,22 @@ const animateTransition = (shouldAnimate = true) => {
       const path = createPath(d.obj, targetPos);
       if (path) return path;
 
-      return `M ${targetPos.x},${targetPos.y} h ${targetPos.width} v ${targetPos.height} h -${targetPos.width} Z`;
+      let x = targetPos.x;
+      let y = targetPos.y;
+
+      // if (viewMode.value === "tier") {
+      //     // Convert the absolute position from the path calculation to a position RELATIVE to the cell's origin (d.x, d.y)
+      //     const cellKey = `${d.obj.tier}-${d.obj.category}`;
+      //     const layout = cellLayouts.get(cellKey);
+      //     if (layout) {
+      //         x = targetPos.x - layout.x; // Relative X
+      //         y = targetPos.y - layout.y; // Relative Y
+      //     }
+      // }
+
+      return `M ${x},${y} h ${targetPos.width} v ${targetPos.height} h -${targetPos.width} Z`;
     })
+    .attr("transform", viewMode.value === "tier" ? null : null)
     .attr("fill", (d) => {
       if (d.shape === "baseline-rect") return "none";
       return getFillColor(d.obj, viewMode.value);

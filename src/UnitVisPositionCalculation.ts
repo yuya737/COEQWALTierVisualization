@@ -14,8 +14,7 @@ export const calculateCategoryWidths = (
   gridWidth: number
 ): CategoryLayout[] => {
   const dotSize = 16;
-  const spacing = dotSize * 1.2; // 19.2
-  // const MIN_CATEGORY_WIDTH = spacing * 1.5; // ~29px - ensures at least 1 dot fits
+  const spacing = dotSize * 1.2;
   const MIN_CATEGORY_WIDTH = 120;
 
   const categoryObjectiveCounts = new Map<string, number>();
@@ -117,7 +116,7 @@ export const calculateTierPositions = (
   width: number,
   height: number,
   showComparison: boolean
-): Position[] => {
+): { positions: Position[]; cellLayouts: Map<string, { contentHeight: number; x: number; y: number; width: number; height: number }> } => {
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
 
@@ -135,10 +134,20 @@ export const calculateTierPositions = (
   );
 
   const cellHeight = gridHeight / tiers.length;
+  const positions: Position[] = [];
+  
+  const getDynamicDotSize = (count: number, cellWidth: number, cellHeight: number) => {
+    const area = cellWidth * cellHeight;
+    const individualArea = area / count;
+    // Aim for a size that fits a grid, leaving some padding
+    return Math.min(16, Math.sqrt(individualArea) * 0.8);
+  };
+
   const dotSize = 16;
   const spacing = dotSize * 1.2;
 
-  const positions: Position[] = [];
+  
+  const cellLayouts = new Map<string, { contentHeight: number; x: number; y: number; width: number; height: number }>();
 
   // Normal mode or comparison mode with triangles
   if (!showComparison) {
@@ -151,31 +160,67 @@ export const calculateTierPositions = (
     tiers.forEach((tier, tierIndex) => {
       categories.forEach((category, catIndex) => {
         const cellObjectives = grouped.get(tier)?.get(category) || [];
+        if (cellObjectives.length === 0) {
+          return;
+        }
 
         const cellWidth = categoryWidths.get(category) || 0;
         const cellStartX = categoryStartX.get(category) || 0;
-        const dotsPerRow = Math.max(
-          1,
-          Math.floor((cellWidth - spacing / 2) / spacing)
-        );
+        
+        let dotSize = 16; // Start with max desired size
+        let spacing = dotSize * 1.2;
+        let count = cellObjectives.length;
+
+        
+        const safeHeight = cellHeight - 5; 
+        const safeWidth = cellWidth - 5;
+
+        // Iteratively shrink dotSize until everything fits
+        while (dotSize > 4) {
+          spacing = dotSize * 1.2;
+          const cols = Math.floor(safeWidth / spacing);
+          const rows = Math.ceil(count / cols);
+          
+          if (cols > 0 && (rows * spacing) <= safeHeight) {
+            break;
+          }
+          dotSize -= 0.5;
+        }
+
+        const dotsPerRow = Math.max(1, Math.floor(safeWidth / spacing));
+        
+        let maxRow = -1;
 
         cellObjectives.forEach((obj, idx) => {
           const row = Math.floor(idx / dotsPerRow);
           const col = idx % dotsPerRow;
-
-          const x = margin.left + cellStartX + col * spacing + dotSize;
-          const y =
-            margin.top + tierIndex * cellHeight + row * spacing + dotSize;
+          
+          const x_rel = col * spacing + dotSize;
+          const y_rel = row * spacing + dotSize;
 
           positions.push({
             id: obj.id,
-            x: x - dotSize / 2,
-            y: y - dotSize / 2,
+            x: x_rel - dotSize / 2,
+            y: y_rel - dotSize / 2,
             width: dotSize,
             height: dotSize,
             obj: obj,
             shape: "rect",
           });
+
+          maxRow = Math.max(maxRow, row);
+        });
+
+        // Calculate total height required for content
+        const contentHeight = (maxRow === -1) ? 0 : (maxRow + 1) * spacing + dotSize/2;
+        
+        // Store cell layout info
+        cellLayouts.set(`${tier}-${category}`, {
+            contentHeight,
+            x: margin.left + cellStartX,
+            y: margin.top + tierIndex * cellHeight,
+            width: cellWidth,
+            height: cellHeight,
         });
       });
     });
@@ -217,14 +262,14 @@ export const calculateTierPositions = (
         );
 
         let dotIndex = 0;
+        let maxRow = -1;
 
         currentObjectives.forEach((obj) => {
           const row = Math.floor(dotIndex / dotsPerRow);
           const col = dotIndex % dotsPerRow;
 
-          const x = margin.left + cellStartX + col * spacing + dotSize;
-          const y =
-            margin.top + tierIndex * cellHeight + row * spacing + dotSize;
+          const x_rel = col * spacing + dotSize;
+          const y_rel = row * spacing + dotSize;
 
           const currentTierNum = tiers.indexOf(obj.tier);
           const baselineTierNum = tiers.indexOf(obj.baselineTier);
@@ -238,8 +283,8 @@ export const calculateTierPositions = (
 
           positions.push({
             id: obj.id,
-            x: x - dotSize / 2,
-            y: y - dotSize / 2,
+            x: x_rel - dotSize / 2,
+            y: y_rel - dotSize / 2,
             width: dotSize,
             height: dotSize,
             obj: obj,
@@ -253,14 +298,13 @@ export const calculateTierPositions = (
           const row = Math.floor(dotIndex / dotsPerRow);
           const col = dotIndex % dotsPerRow;
 
-          const x = margin.left + cellStartX + col * spacing + dotSize;
-          const y =
-            margin.top + tierIndex * cellHeight + row * spacing + dotSize;
+          const x_rel = col * spacing + dotSize;
+          const y_rel = row * spacing + dotSize;
 
           positions.push({
             id: `baseline-${obj.id}`,
-            x: x - dotSize / 2,
-            y: y - dotSize / 2,
+            x: x_rel - dotSize / 2,
+            y: y_rel - dotSize / 2,
             width: dotSize,
             height: dotSize,
             obj: obj,
@@ -268,12 +312,24 @@ export const calculateTierPositions = (
           });
 
           dotIndex++;
+          maxRow = Math.max(maxRow, row);
+        });
+
+        const contentHeight = (maxRow === -1) ? 0 : (maxRow + 1) * spacing + dotSize/2;
+
+        // Store cell layout info
+        cellLayouts.set(`${tier}-${category}`, {
+            contentHeight,
+            x: margin.left + cellStartX, // abs x
+            y: margin.top + tierIndex * cellHeight, // abs y
+            width: cellWidth,
+            height: cellHeight,
         });
       });
     });
   }
 
-  return positions;
+  return {positions, cellLayouts};
 };
 
 export const calculateTreemapPositions = (
