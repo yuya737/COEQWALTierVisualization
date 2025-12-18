@@ -273,7 +273,7 @@ const drawTierCells = (width, height) => {
     // Apply the clip-path. The clip-path rect is relative to the group's origin (0,0)
     .attr("clip-path", (d) => `url(#clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")})`);
 
-  // --- Implement D3 Drag for Vertical Scrolling ---
+
   const drag = d3
     .drag()
     .on("start", function(event) {
@@ -305,18 +305,11 @@ const drawTierCells = (width, height) => {
     .on("end", function(event) {
         d3.select("body").style("cursor", null).style("user-select", null);
     })
-    .filter((event, d) => {
-        // Only enable dragging if content overflows cell height
-        return d.contentHeight > d.height;
-    });
 
-  // Apply drag behavior to the outer cell group
-  cellGroups.call(drag);
-
-  // Add the inner <g> which will contain the dots and be translated/scrolled
+  // Add the inner <g> which will contain the dots and be translated
   cellGroups
     .selectAll(".cell-content-g")
-    .data((d) => [d]) // Bind the same data to create one inner group per cell group
+    .data((d) => [d]) // Bind same data to create one inner group per cell group
     .enter()
     .append("g")
     .attr("class", "cell-content-g")
