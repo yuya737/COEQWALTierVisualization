@@ -32,6 +32,19 @@
           <option value="category">Category Colors</option>
           <option value="waterVolume">Water Volume Colors</option>
         </select>
+        <select
+          v-model="categoryFilter"
+          class="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <option value="all">All Categories</option>
+          <option
+            v-for="category in categories"
+            :key="category"
+            :value="category"
+          >
+            {{ category }}
+          </option>
+        </select>
         <button
           @click="toggleComparison"
           :disabled="viewMode !== 'tier'"
@@ -115,6 +128,7 @@ const viewMode = ref("tier");
 const showComparison = ref(false);
 const colorMode = ref("default"); // "default", "tier", "category", or "waterVolume"
 const selectedObjectives = ref([]);
+const categoryFilter = ref("all"); // "all" or specific category name
 let objectives = [];
 let categories = [];
 let svg = null;
@@ -632,7 +646,7 @@ const drawLegends = (width, height) => {
       .attr("width", legendItemSize)
       .attr("height", legendItemSize)
       .attr("stroke", colors.lightBlue)
-      .attr("stroke-width", 3)
+      .attr("stroke-width", 1)
       .attr("stroke-dasharray", "2.5,2.5")
       .attr("fill", "none");
     svg
@@ -1002,7 +1016,12 @@ const animateTransition = (shouldAnimate = true) => {
     .attr("stroke", "#fff")
     .attr("stroke-width", 1)
     .style("cursor", "pointer")
-    .attr("fill", (d) => getFillColor(d.obj, viewMode.value));
+    .attr("fill", (d) => getFillColor(d.obj, viewMode.value))
+    .attr("opacity", (d) => {
+      // Set initial opacity based on category filter
+      if (categoryFilter.value === "all") return 1;
+      return d.obj.category === categoryFilter.value ? 1 : 0.15;
+    });
 
   // Set initial positions
   enterShapes.each(function (d) {
@@ -1102,10 +1121,15 @@ const animateTransition = (shouldAnimate = true) => {
       }
       return "#fff";
     })
-    .attr("stroke-width", (d) => (d.shape === "baseline-rect" ? 3 : 1))
+    .attr("stroke-width", (d) => (d.shape === "baseline-rect" ? 1 : 1))
     .attr("stroke-dasharray", (d) =>
       d.shape === "baseline-rect" ? "2.5,2.5" : "0"
-    );
+    )
+    .attr("opacity", (d) => {
+      // Apply opacity based on category filter
+      if (categoryFilter.value === "all") return 1;
+      return d.obj.category === categoryFilter.value ? 1 : 0.15;
+    });
 
   // Hover
   allShapes
@@ -1148,7 +1172,7 @@ const animateTransition = (shouldAnimate = true) => {
       .attr("alignment-baseline", "middle")
       .style("font-size", "10px")
       .style("font-weight", "600")
-      .style("fill", "#333")
+      .style("fill", "#fff")
       .style("pointer-events", "none")
       .attr("opacity", 0);
 
@@ -1355,6 +1379,10 @@ watch(currentScenario, async () => {
 });
 
 watch(colorMode, () => {
+  animateTransition(true);
+});
+
+watch(categoryFilter, () => {
   animateTransition(true);
 });
 </script>
