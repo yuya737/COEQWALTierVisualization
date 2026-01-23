@@ -4,7 +4,7 @@ const margin = { top: 60, right: 50, bottom: 150, left: 100 };
 
 const MAX_DOT_SIZE = 16;
 const MIN_DOT_SIZE = 4;
-const CELL_PADDING = 4;
+const CELL_PADDING = 0;
 
 export interface CategoryLayout {
   category: string;
@@ -19,24 +19,30 @@ export const calculateCategoryWidths = (
 ): CategoryLayout[] => {
   const dotSize = 16;
   const spacing = dotSize * 1.2;
-  const MIN_CATEGORY_WIDTH = 120;
+  const MIN_CATEGORY_WIDTH = 50;
 
+  // Count total objectives per category for proportional width allocation
   const categoryObjectiveCounts = new Map<string, number>();
   categories.forEach((category) => {
     const count = objectives.filter((obj) => obj.category === category).length;
     categoryObjectiveCounts.set(category, count);
   });
 
-  const totalObjectives = objectives.length;
+  // Calculate total objectives ONLY in the displayed categories
+  const totalObjectives = Array.from(categoryObjectiveCounts.values()).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
 
-  // First pass: calculate proportional widths
   const proportionalWidths = new Map<string, number>();
   categories.forEach((category) => {
     const count = categoryObjectiveCounts.get(category) || 0;
-    const proportion = count / totalObjectives;
+    const proportion =
+      totalObjectives > 0 ? count / totalObjectives : 1 / categories.length;
     const categoryWidth = gridWidth * proportion;
     proportionalWidths.set(category, categoryWidth);
   });
+  console.log("Proportional Widths:", proportionalWidths);
 
   // Find categories that need minimum width
   const categoriesNeedingMin: string[] = [];
@@ -52,6 +58,7 @@ export const calculateCategoryWidths = (
       categoriesAboveMin.push(category);
     }
   });
+  console.log("Categories needing minimum width:", categoriesNeedingMin);
 
   // Calculate final widths
   const finalWidths = new Map<string, number>();
@@ -63,17 +70,35 @@ export const calculateCategoryWidths = (
   });
 
   // Redistribute remaining width proportionally among larger categories
-  if (categoriesAboveMin.length > 0 && remainingWidth > 0) {
-    const totalAboveMinObjectives = categoriesAboveMin.reduce((sum, cat) => {
-      return sum + (categoryObjectiveCounts.get(cat) || 0);
-    }, 0);
+  if (categoriesAboveMin.length > 0) {
+    if (remainingWidth > 0) {
+      // Normal case: distribute remaining width proportionally
+      const totalAboveMinObjectives = categoriesAboveMin.reduce((sum, cat) => {
+        return sum + (categoryObjectiveCounts.get(cat) || 0);
+      }, 0);
 
-    categoriesAboveMin.forEach((category) => {
-      const count = categoryObjectiveCounts.get(category) || 0;
-      const proportion = count / totalAboveMinObjectives;
-      const categoryWidth = remainingWidth * proportion;
-      finalWidths.set(category, categoryWidth);
-    });
+      categoriesAboveMin.forEach((category) => {
+        const count = categoryObjectiveCounts.get(category) || 0;
+        const proportion = count / totalAboveMinObjectives;
+        const categoryWidth = remainingWidth * proportion;
+        finalWidths.set(category, categoryWidth);
+      });
+    } else {
+      // Not enough space: scale everything down proportionally
+      const scaleFactor =
+        gridWidth /
+        (totalMinWidth + categoriesAboveMin.length * MIN_CATEGORY_WIDTH);
+
+      // Re-assign scaled widths to min categories
+      categoriesNeedingMin.forEach((category) => {
+        finalWidths.set(category, MIN_CATEGORY_WIDTH * scaleFactor);
+      });
+
+      // Assign scaled widths to above-min categories
+      categoriesAboveMin.forEach((category) => {
+        finalWidths.set(category, MIN_CATEGORY_WIDTH * scaleFactor);
+      });
+    }
   }
 
   // Build layouts with cumulative positions
@@ -161,15 +186,21 @@ export const calculateTierPositions = (
 
     for (let size = MAX_DOT_SIZE; size >= MIN_DOT_SIZE; size -= 0.5) {
       const spacing = size * 1.2;
-      const cols = Math.floor((cellWidth - CELL_PADDING) / spacing);
-      if (cols <= 0) continue;
+      // Calculate max columns that fit: need cols * spacing + size/2 <= cellWidth
+      // Rearranging: cols <= (cellWidth - size/2) / spacing
+      const maxCols = Math.floor((cellWidth - CELL_PADDING - size / 2) / spacing);
+      const cols = Math.max(1, maxCols);
       const rows = Math.ceil(count / cols);
-      if (rows * spacing <= cellHeight - CELL_PADDING) {
+      // Actual height needed: rows * spacing + size / 2 (matching contentHeight calculation)
+      const requiredHeight = rows * spacing + size / 2;
+      const requiredWidth = cols * spacing + size / 2;
+      if (requiredHeight <= cellHeight - CELL_PADDING && requiredWidth <= cellWidth - CELL_PADDING) {
         return size;
       }
     }
     return MIN_DOT_SIZE; // fallback
   };
+  console.log("Grid Width:", gridWidth, "Grid Height:", gridHeight);
 
   // Determine a single dot size that fits every populated cell
   let globalDotSize = MAX_DOT_SIZE;
@@ -229,16 +260,12 @@ export const calculateTierPositions = (
 
         const spacing = globalSpacing;
         const dotSize = globalDotSize;
-        const safeWidth = cellWidth;
-
-        const dotsPerRow = Math.max(1, Math.floor(safeWidth / spacing));
-        const totalCols = dotsPerRow;
-        const totalRows = Math.ceil(cellObjectives.length / dotsPerRow);
-
-        const usedWidth = totalCols * spacing - (spacing - dotSize);
-
-        const offsetX = (safeWidth - usedWidth) / 2;
-        const offsetY = CELL_PADDING;
+        // Calculate dotsPerRow using same formula as computeMaxDotSizeForCell
+        // Width needed: dotsPerRow * spacing + dotSize/2
+        const dotsPerRow = Math.max(
+          1,
+          Math.floor((cellWidth - CELL_PADDING - dotSize / 2) / spacing),
+        );
 
         let maxRow = -1;
 
@@ -246,8 +273,8 @@ export const calculateTierPositions = (
           const row = Math.floor(idx / dotsPerRow);
           const col = idx % dotsPerRow;
 
-          const x_rel = offsetX + col * spacing + dotSize / 2;
-          const y_rel = offsetY + row * spacing + dotSize / 2;
+          const x_rel = col * spacing + dotSize;
+          const y_rel = row * spacing + dotSize;
 
           positions.push({
             id: obj.id,
@@ -283,19 +310,26 @@ export const calculateTierPositions = (
         const categoryObjectives = objectives.filter(
           (obj) => obj.category === category,
         );
+        console.log("Category Objectives:", tier, category, categoryObjectives);
 
         const spacing = globalSpacing;
         const dotSize = globalDotSize;
         const cellWidth = categoryWidths.get(category) || 0;
         const cellStartX = categoryStartX.get(category) || 0;
+        // Calculate dotsPerRow using same formula as computeMaxDotSizeForCell
+        // Width needed: dotsPerRow * spacing + dotSize/2
         const dotsPerRow = Math.max(
           1,
-          Math.floor((cellWidth - spacing / 2) / spacing),
+          Math.floor((cellWidth - CELL_PADDING - dotSize / 2) / spacing),
         );
 
         let currentObjectives = categoryObjectives.filter(
           (obj) => obj.tier === tier,
         );
+        const movedAwayObjectives = categoryObjectives.filter(
+          (obj) => obj.baselineTier === tier && obj.tier !== tier,
+        );
+        // Use simple grid without centering offsets to restore visibility
 
         currentObjectives.sort((a, b) => {
           const aTierNum = tiers.indexOf(a.tier);
@@ -310,10 +344,6 @@ export const calculateTierPositions = (
 
           return aChange - bChange;
         });
-
-        const movedAwayObjectives = categoryObjectives.filter(
-          (obj) => obj.baselineTier === tier && obj.tier !== tier,
-        );
 
         let dotIndex = 0;
         let maxRow = -1;
@@ -346,6 +376,7 @@ export const calculateTierPositions = (
           });
 
           dotIndex++;
+          maxRow = Math.max(maxRow, row);
         });
 
         movedAwayObjectives.forEach((obj) => {

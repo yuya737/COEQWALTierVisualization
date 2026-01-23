@@ -2,65 +2,56 @@
   <div
     class="w-full h-full bg-white p-5 relative flex flex-col overflow-hidden"
   >
-    <div class="flex justify-between items-center mb-5 mt-3">
-      <h2 class="text-2xl font-semibold text-gray-800 m-0">
+    <div class="flex flex-col gap-3 mb-5 mt-3">
+      <!-- Title -->
+      <h2 class="font-semibold text-gray-800 m-0 text-lg">
         {{
           showComparison
             ? `Viewing scenario ${currentScenario} against ${baselineScenario}`
             : `Viewing scenario ${currentScenario}`
         }}
       </h2>
-      <div class="flex gap-3 justify-end">
-        <select
-          v-model="currentScenario"
-          class="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <option
-            v-for="scenario in availableScenarios"
-            :key="scenario.scenario_code"
-            :value="scenario.scenario_code"
+
+      <!-- Controls -->
+      <div class="flex gap-4 items-center flex-wrap">
+        <!-- Scenario Selection -->
+        <div class="flex gap-2 items-center">
+          <label class="text-sm font-semibold text-gray-700">Scenario:</label>
+          <select
+            v-model="currentScenario"
+            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            {{ scenario.scenario_code }}
-          </option>
-        </select>
-        <select
-          v-model="colorMode"
-          class="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <option value="default">Default</option>
-          <option value="tier">Tier Colors</option>
-          <option value="category">Category Colors</option>
-          <option value="waterVolume">Water Volume Colors</option>
-        </select>
-        <select
-          v-model="categoryFilter"
-          class="px-4 py-2.5 border border-gray-300 rounded-md text-sm font-semibold cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <option value="all">All Categories</option>
-          <option
-            v-for="category in categories"
-            :key="category"
-            :value="category"
+            <option
+              v-for="scenario in availableScenarios"
+              :key="scenario.scenario_code"
+              :value="scenario.scenario_code"
+            >
+              {{ scenario.scenario_code }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Baseline Scenario Selection (only shown in comparison mode) -->
+        <div v-if="showComparison" class="flex gap-2 items-center">
+          <label class="text-sm font-semibold text-gray-700">Baseline:</label>
+          <select
+            v-model="baselineScenario"
+            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            {{ category }}
-          </option>
-        </select>
-        <button
-          @click="toggleComparison"
-          :disabled="viewMode !== 'tier'"
-          class="px-5 py-2.5 border border-gray-300 rounded-md text-sm font-semibold transition-colors"
-          :class="
-            viewMode !== 'tier'
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : showComparison
-              ? 'bg-gray-200 text-gray-800 cursor-pointer'
-              : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
-          "
-        >
-          {{
-            showComparison ? "Hide Baseline Comparison" : "Compare to Baseline"
-          }}
-        </button>
+            <option
+              v-for="scenario in availableScenarios"
+              :key="scenario.scenario_code"
+              :value="scenario.scenario_code"
+            >
+              {{ scenario.scenario_code }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Divider -->
+        <div class="h-6 w-px bg-gray-300"></div>
+
+        <!-- View Mode -->
         <div class="flex gap-2 items-center">
           <label class="text-sm font-semibold text-gray-700">View:</label>
           <label class="flex items-center gap-1.5 cursor-pointer">
@@ -94,6 +85,59 @@
             <span class="text-sm">Equity Bar Plot</span>
           </label>
         </div>
+
+        <!-- Divider -->
+        <div class="h-6 w-px bg-gray-300"></div>
+
+        <!-- Filters -->
+        <div class="flex gap-2 items-center">
+          <label class="text-sm font-semibold text-gray-700">Color:</label>
+          <select
+            v-model="colorMode"
+            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <option value="default">Default</option>
+            <option value="tier">Tier</option>
+            <option value="category">Category</option>
+            <option value="waterVolume">Water Volume</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2 items-center">
+          <label class="text-sm font-semibold text-gray-700">Filter:</label>
+          <select
+            v-model="categoryFilter"
+            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <option value="all">All Categories</option>
+            <option
+              v-for="category in categories"
+              :key="category"
+              :value="category"
+            >
+              {{ category }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Divider -->
+        <div class="h-6 w-px bg-gray-300"></div>
+
+        <!-- Comparison Toggle -->
+        <button
+          @click="toggleComparison"
+          :disabled="viewMode !== 'tier'"
+          class="px-4 py-1.5 border border-gray-300 rounded-md text-sm font-semibold transition-colors"
+          :class="
+            viewMode !== 'tier'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : showComparison
+                ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer border-blue-500'
+                : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
+          "
+        >
+          {{ showComparison ? "Hide Comparison" : "Compare to Baseline" }}
+        </button>
       </div>
     </div>
     <div class="flex-1 overflow-auto">
@@ -111,12 +155,15 @@ import {
   fetchShortCodes,
   fetchGeoShapes,
 } from "../utils";
-import GW_STOR from "../GW_STOR"
+import GW_STOR from "../GW_STOR";
 import RES_STOR from "../RES_STOR";
 
 import {
-  calculateBarPlotPositions, calculateTierPositions, calculateTreemapPositions, calculateCategoryWidths
-} from "../UnitVisPositionCalculation"
+  calculateBarPlotPositions,
+  calculateTierPositions,
+  calculateTreemapPositions,
+  calculateCategoryWidths,
+} from "../UnitVisPositionCalculation";
 
 const emit = defineEmits(["polygon-select", "objectives-select"]);
 
@@ -147,10 +194,10 @@ const colors = {
 };
 
 const tierColorMap = {
-  "Tier 1": [74, 200, 167],    // Muted green
-  "Tier 2": [120, 165, 250],   // Muted blue
-  "Tier 3": [253, 212, 103],   // Muted yellow
-  "Tier 4": [244, 126, 126],   // Muted red
+  "Tier 1": [74, 200, 167], // Muted green
+  "Tier 2": [120, 165, 250], // Muted blue
+  "Tier 3": [253, 212, 103], // Muted yellow
+  "Tier 4": [244, 126, 126], // Muted red
 };
 
 // Category color scale
@@ -163,14 +210,19 @@ const drawPolygonsOnMap = (objective) => {
     return;
   }
   const short_code = tierShortList.find(
-    (tier) => tier.name === objective.category
+    (tier) => tier.name === objective.category,
   )?.short_code;
   if (!short_code || !geoJSONs[short_code]) {
     console.warn("No geoshapes found for category:", objective.category);
     return;
   }
   const withinCategoryIndex = objective.withinCategoryIndex;
-  console.log("Drawing polygon for objective:", objective, short_code, withinCategoryIndex);
+  console.log(
+    "Drawing polygon for objective:",
+    objective,
+    short_code,
+    withinCategoryIndex,
+  );
   const polygonswithoutColor =
     geoJSONs[short_code]["features"][
       withinCategoryIndex % geoJSONs[short_code]["features"].length
@@ -182,7 +234,7 @@ const drawPolygonsOnMap = (objective) => {
     ...polygonswithoutColor,
     properties: {
       ...polygonswithoutColor.properties,
-      fillColor: initFillColor
+      fillColor: initFillColor,
     },
   };
 
@@ -198,7 +250,7 @@ const drawAllPolygonsForCategory = (categoryName) => {
     return;
   }
   const short_code = tierShortList.find(
-    (tier) => tier.name === categoryName
+    (tier) => tier.name === categoryName,
   )?.short_code;
   if (!short_code || !geoJSONs[short_code]) {
     console.warn("No geoshapes found for category:", categoryName);
@@ -206,22 +258,24 @@ const drawAllPolygonsForCategory = (categoryName) => {
   }
 
   const categoryObjectives = objectives.filter(
-    (obj) => obj.category === categoryName
+    (obj) => obj.category === categoryName,
   );
   selectedObjectives.value = categoryObjectives;
   emit("objectives-select", categoryObjectives);
 
   // debugger
-  const polygonsWithColor = geoJSONs[short_code]["features"].map((feature, index) => {
-    const obj = categoryObjectives[index % categoryObjectives.length];
-    return {
-      ...feature,
-      properties: {
-        ...feature.properties,
-        fillColor: tierColorMap[obj.tier]
-      },
-    };
-  });
+  const polygonsWithColor = geoJSONs[short_code]["features"].map(
+    (feature, index) => {
+      const obj = categoryObjectives[index % categoryObjectives.length];
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          fillColor: tierColorMap[obj.tier],
+        },
+      };
+    },
+  );
 
   console.log("Polygons for category:", categoryName, polygonsWithColor);
 
@@ -246,53 +300,90 @@ const toggleComparison = () => {
 };
 
 const drawTierCells = (width, height) => {
-  if (viewMode.value !== 'tier' || cellLayouts.size === 0) {
-      svg.selectAll(".tier-cell-group").remove();
-      svg.select("defs").remove();
-      return;
+  if (viewMode.value !== "tier" || cellLayouts.size === 0) {
+    svg.selectAll(".tier-cell-group").remove();
+    svg.select("defs").remove();
+    return;
   }
-  
-  // Remove existing elements before redraw
-  svg.selectAll(".tier-cell-group").remove();
-  svg.select("defs").remove();
 
-  const defs = svg.append("defs");
-  
+  // Move all shapes out of cells before updating cell structure
+  svg.selectAll(".cell-content-g .animated-shape").each(function () {
+    svg.node().appendChild(this);
+  });
+
   const cellData = Array.from(cellLayouts.entries()).map(([key, layout]) => ({
-      key,
-      ...layout,
+    key,
+    ...layout,
   }));
 
-  // Create clip paths
-  defs
+  // Update or create defs
+  let defs = svg.select("defs");
+  if (defs.empty()) {
+    defs = svg.append("defs");
+  }
+
+  // Update clip paths using enter/update/exit pattern
+  const clipPaths = defs
     .selectAll(".cell-clip-path")
-    .data(cellData)
+    .data(cellData, (d) => d.key);
+
+  // Exit - remove old clip paths
+  clipPaths.exit().remove();
+
+  // Enter - create new clip paths
+  const clipPathsEnter = clipPaths
     .enter()
     .append("clipPath")
-    .attr("id", (d) => `clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")}`) // Generate a safe ID
+    .attr("class", "cell-clip-path")
+    .attr("id", (d) => `clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")}`);
+
+  clipPathsEnter
     .append("rect")
     .attr("x", 0)
     .attr("y", 0)
     .attr("width", (d) => d.width)
     .attr("height", (d) => d.height);
 
-  // Create cell container groups (translated to the cell's top-left absolute position)
+  // Update - update existing clip paths
+  clipPaths
+    .select("rect")
+    .attr("width", (d) => d.width)
+    .attr("height", (d) => d.height);
+
+  // Update cell groups using enter/update/exit pattern
   const cellGroups = svg
     .selectAll(".tier-cell-group")
-    .data(cellData, (d) => d.key)
+    .data(cellData, (d) => d.key);
+
+  // Exit - remove old cell groups
+  cellGroups.exit().remove();
+
+  // Enter - create new cell groups
+  const cellGroupsEnter = cellGroups
     .enter()
     .append("g")
     .attr("class", "tier-cell-group")
     .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
-    // Apply the clip-path. The clip-path rect is relative to the group's origin (0,0)
-    .attr("clip-path", (d) => `url(#clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")})`);
+    .attr(
+      "clip-path",
+      (d) => `url(#clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")})`,
+    );
 
+  // Update - update existing cell groups
+  cellGroups
+    .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
+    .attr(
+      "clip-path",
+      (d) => `url(#clip-${d.key.replace(/[^a-zA-Z0-9]/g, "")})`,
+    );
 
   const drag = d3
     .drag()
-    .on("start", function(event) {
-        // Disable text selection during drag for a smoother experience
-        d3.select("body").style("cursor", "grabbing").style("user-select", "none");
+    .on("start", function (event) {
+      // Disable text selection during drag for a smoother experience
+      d3.select("body")
+        .style("cursor", "grabbing")
+        .style("user-select", "none");
     })
     .on("drag", function (event, d) {
       // Find the inner content group
@@ -301,11 +392,13 @@ const drawTierCells = (width, height) => {
 
       // Get current translation from the transform attribute
       const transform = contentGroup.attr("transform");
-      const currentYMatch = transform ? transform.match(/translate\(\s*[^,]+,\s*([^)]+)\)/) : null;
+      const currentYMatch = transform
+        ? transform.match(/translate\(\s*[^,]+,\s*([^)]+)\)/)
+        : null;
       const currentY = currentYMatch ? parseFloat(currentYMatch[1]) : 0;
-      
+
       const newY = currentY + event.dy;
-      
+
       // Calculate min and max y translation
       const maxScroll = 0; // Top limit is 0
       const minScroll = Math.min(0, d.height - d.contentHeight); // Max downward scroll
@@ -313,21 +406,33 @@ const drawTierCells = (width, height) => {
       const clampedY = Math.max(minScroll, Math.min(maxScroll, newY));
 
       // Apply the new vertical translation
-      contentGroup
-        .attr("transform", `translate(0, ${clampedY})`);
+      contentGroup.attr("transform", `translate(0, ${clampedY})`);
     })
-    .on("end", function(event) {
-        d3.select("body").style("cursor", null).style("user-select", null);
-    })
+    .on("end", function (event) {
+      d3.select("body").style("cursor", null).style("user-select", null);
+    });
 
-  // Add the inner <g> which will contain the dots and be translated
-  cellGroups
-    .selectAll(".cell-content-g")
-    .data((d) => [d]) // Bind same data to create one inner group per cell group
+  // Merge enter and update selections for the inner content group
+  const allCellGroups = cellGroupsEnter.merge(cellGroups);
+
+  // Update or create inner content groups
+  const contentGroups = allCellGroups.selectAll(".cell-content-g").data(
+    (d) => [d],
+    (d) => d.key,
+  );
+
+  // Exit
+  contentGroups.exit().remove();
+
+  // Enter
+  contentGroups
     .enter()
     .append("g")
     .attr("class", "cell-content-g")
-    .attr("transform", "translate(0, 0)"); // Initial position is 0,0 relative to the parent tier-cell-group
+    .attr("transform", "translate(0, 0)");
+
+  // Apply drag behavior to all cell groups (both new and existing)
+  allCellGroups.call(drag);
 };
 
 const drawLabelsAndGrid = (width, height) => {
@@ -385,13 +490,16 @@ const drawLabelsAndGrid = (width, height) => {
 
   if (viewMode.value === "tier") {
     drawTierCells(width, height);
-  }
-  else {
+  } else {
     return;
   }
 
   // Calculate variable category widths
-  const categoryLayouts = calculateCategoryWidths(objectives, categories, gridWidth);
+  const categoryLayouts = calculateCategoryWidths(
+    objectives,
+    categories,
+    gridWidth,
+  );
 
   // Grid lines - vertical lines at category boundaries
   categoryLayouts.forEach((layout, i) => {
@@ -451,14 +559,11 @@ const drawLabelsAndGrid = (width, height) => {
     .enter()
     .append("g")
     .attr("class", "category-label-group")
-    .attr(
-      "transform",
-      (layout) => {
-        const x_trans = margin.left + layout.startX + layout.width / 2;
-        const y_trans = margin.top + gridHeight + 25;
-        return `translate(${x_trans}, ${y_trans}) rotate(90)`;
-      }
-    )
+    .attr("transform", (layout) => {
+      const x_trans = margin.left + layout.startX + layout.width / 2;
+      const y_trans = margin.top + gridHeight + 25;
+      return `translate(${x_trans}, ${y_trans}) rotate(90)`;
+    })
     .style("cursor", "pointer");
 
   categoryGroups.each(function (d) {
@@ -576,7 +681,7 @@ const drawLegends = (width, height) => {
   // Comparison mode legend (only in tier mode with comparison)
   if (viewMode.value === "tier" && showComparison.value) {
     const legendX = margin.left;
-    const legendY = height - margin.bottom + 60;
+    const legendY = margin.top - 20; // Position at top
     const legendItemSize = 18;
     const legendSpacing = 120;
 
@@ -762,14 +867,15 @@ const drawLegends = (width, height) => {
       .attr("y", legendY)
       .style("font-size", "1rem")
       .style("font-weight", "600")
-      .text("Bar Height = Unmet Demand or similar metric that determines the amount of water required to meet some equity definition (Currently Random)")
-
+      .text(
+        "Bar Height = Unmet Demand or similar metric that determines the amount of water required to meet some equity definition (Currently Random)",
+      );
   }
 
   // Category legend (when category color mode is active)
   if (colorMode.value === "category") {
     const legendX = margin.left;
-    const legendY = height - margin.bottom + 90;
+    const legendY = margin.top - 25; // Position at top
     const colorBoxSize = 14;
     const itemSpacing = 15;
     const rowSpacing = 22;
@@ -786,7 +892,7 @@ const drawLegends = (width, height) => {
         currentRow = 1;
       }
 
-      const yPos = legendY - 10 + (currentRow * rowSpacing);
+      const yPos = legendY + currentRow * rowSpacing;
 
       // Color box
       svg
@@ -819,11 +925,11 @@ const drawLegends = (width, height) => {
   // Tier legend (when tier color mode is active)
   if (colorMode.value === "tier" && !showComparison.value) {
     const legendX = margin.left;
-    const legendY = height - margin.bottom + 90;
+    const legendY = margin.top - 25; // Position at top
     const colorBoxSize = 14;
     const itemSpacing = 15;
     const rowSpacing = 22;
-    const itemsPerRow = Math.ceil(tiers.length / 2);
+    const itemsPerRow = tiers.length;
 
     // Add legend items for each tier (two-row horizontal layout)
     let currentX = legendX;
@@ -836,7 +942,7 @@ const drawLegends = (width, height) => {
         currentRow = 1;
       }
 
-      const yPos = legendY - 10 + (currentRow * rowSpacing);
+      const yPos = legendY + currentRow * rowSpacing;
       const tierColor = tierColorMap[tier];
 
       // Color box
@@ -885,7 +991,15 @@ const animateTransition = (shouldAnimate = true) => {
     .duration(duration)
     .attr("opacity", viewMode.value === "tier" ? 1 : 0);
 
-  const { positions: tierPositions, cellLayouts: newCellLayouts } = calculateTierPositions(objectives, categories, tiers, width, height, showComparison.value);
+  const { positions: tierPositions, cellLayouts: newCellLayouts } =
+    calculateTierPositions(
+      objectives,
+      categories,
+      tiers,
+      width,
+      height,
+      showComparison.value,
+    );
   cellLayouts = newCellLayouts; // Update global state
 
   // Draw/remove labels and grid
@@ -988,15 +1102,19 @@ const animateTransition = (shouldAnimate = true) => {
   };
 
   const getTargetContainer = (d) => {
-      if (viewMode.value === 'tier') {
-          // In tier mode, shapes must go into the cell-content-g
-          const tier = d.obj.tier;
-          const category = d.obj.category;
-          const key = `${tier}-${category}`.replace(/[^a-zA-Z0-9]/g, "");
-          return svg.select(`.tier-cell-group[clip-path*='${key}'] .cell-content-g`);
-      }
-      // In other modes, shapes stay on the main svg
-      return svg;
+    if (viewMode.value === "tier") {
+      // In tier mode, shapes must go into the cell-content-g
+      // For baseline-rect shapes, use baselineTier; for others, use current tier
+      const tier =
+        d.shape === "baseline-rect" ? d.obj.baselineTier : d.obj.tier;
+      const category = d.obj.category;
+      const key = `${tier}-${category}`.replace(/[^a-zA-Z0-9]/g, "");
+      return svg.select(
+        `.tier-cell-group[clip-path*='${key}'] .cell-content-g`,
+      );
+    }
+    // In other modes, shapes stay on the main svg
+    return svg;
   };
 
   // Update shapes
@@ -1004,8 +1122,10 @@ const animateTransition = (shouldAnimate = true) => {
     viewMode.value === "tier"
       ? tierPositions
       : viewMode.value === "treemap"
-      ? treemapPositions
-      : barPlotPositions;
+        ? treemapPositions
+        : barPlotPositions;
+
+  // Select all shapes including those in nested containers
   const shapes = svg.selectAll(".animated-shape").data(allData, (d) => d.id);
 
   // Enter
@@ -1023,9 +1143,9 @@ const animateTransition = (shouldAnimate = true) => {
       return d.obj.category === categoryFilter.value ? 1 : 0.15;
     });
 
-  // Set initial positions
+  // Set initial positions for new shapes
   enterShapes.each(function (d) {
-    // Start from a different view mode
+    // Start from a different view mode position
     let startPos;
     if (viewMode.value === "tier") {
       startPos = treemapPosMap.get(d.id) || barPlotPosMap.get(d.id);
@@ -1035,9 +1155,13 @@ const animateTransition = (shouldAnimate = true) => {
       // barplot
       startPos = tierPosMap.get(d.id) || treemapPosMap.get(d.id);
     }
+
     if (!startPos) return;
 
-    svg.node().appendChild(this);
+    // Only append if not already in the DOM
+    if (!this.parentNode) {
+      svg.node().appendChild(this);
+    }
 
     const path = createPath(d.obj, startPos);
     if (path) {
@@ -1045,7 +1169,7 @@ const animateTransition = (shouldAnimate = true) => {
     } else {
       d3.select(this).attr(
         "d",
-        `M ${startPos.x},${startPos.y} h ${startPos.width} v ${startPos.height} h -${startPos.width} Z`
+        `M ${startPos.x},${startPos.y} h ${startPos.width} v ${startPos.height} h -${startPos.width} Z`,
       );
     }
 
@@ -1062,17 +1186,18 @@ const animateTransition = (shouldAnimate = true) => {
   // Merge
   const allShapes = enterShapes.merge(shapes);
 
+  // Move shapes to their target containers
   allShapes.each(function (d) {
-      const targetContainer = getTargetContainer(d);
-      if (!targetContainer.empty()) {
-          // Only re-parent if the current parent is not the target container
-          if (d3.select(this.parentNode).node() !== targetContainer.node()) {
-              targetContainer.node().appendChild(this);
-          }
-      } else {
-          // Fallback: move to main SVG
-          svg.node().appendChild(this);
+    const targetContainer = getTargetContainer(d);
+    if (!targetContainer.empty()) {
+      const currentParent = this.parentNode;
+      const targetNode = targetContainer.node();
+
+      // Only move if not already in the correct container
+      if (currentParent !== targetNode) {
+        targetNode.appendChild(this);
       }
+    }
   });
 
   // Transition
@@ -1097,15 +1222,8 @@ const animateTransition = (shouldAnimate = true) => {
       let x = targetPos.x;
       let y = targetPos.y;
 
-      // if (viewMode.value === "tier") {
-      //     // Convert the absolute position from the path calculation to a position RELATIVE to the cell's origin (d.x, d.y)
-      //     const cellKey = `${d.obj.tier}-${d.obj.category}`;
-      //     const layout = cellLayouts.get(cellKey);
-      //     if (layout) {
-      //         x = targetPos.x - layout.x; // Relative X
-      //         y = targetPos.y - layout.y; // Relative Y
-      //     }
-      // }
+      // In tier mode, positions are already relative to cell content, no conversion needed
+      // The calculateTierPositions function returns relative coordinates
 
       return `M ${x},${y} h ${targetPos.width} v ${targetPos.height} h -${targetPos.width} Z`;
     })
@@ -1121,9 +1239,9 @@ const animateTransition = (shouldAnimate = true) => {
       }
       return "#fff";
     })
-    .attr("stroke-width", (d) => (d.shape === "baseline-rect" ? 1 : 1))
+    .attr("stroke-width", (d) => 1)
     .attr("stroke-dasharray", (d) =>
-      d.shape === "baseline-rect" ? "2.5,2.5" : "0"
+      d.shape === "baseline-rect" ? "2.5,2.5" : "0",
     )
     .attr("opacity", (d) => {
       // Apply opacity based on category filter
@@ -1135,6 +1253,27 @@ const animateTransition = (shouldAnimate = true) => {
   allShapes
     .on("mouseover", function (event, d) {
       d3.select(this).attr("stroke", "#333").attr("stroke-width", 3);
+
+      // If this shape has moved (triangle-up or triangle-down), also highlight its baseline-rect
+      if (d.shape === "triangle-up" || d.shape === "triangle-down") {
+        const baselineId = `baseline-${d.id}`;
+        svg
+          .selectAll(".animated-shape")
+          .filter((shapeData) => shapeData.id === baselineId)
+          .attr("stroke", "#333")
+          .attr("stroke-width", 3);
+      }
+
+      // If this is a baseline-rect, highlight the corresponding current shape
+      if (d.shape === "baseline-rect") {
+        const currentId = d.id.toString().replace("baseline-", "");
+        svg
+          .selectAll(".animated-shape")
+          .filter((shapeData) => shapeData.id.toString() === currentId)
+          .attr("stroke", "#333")
+          .attr("stroke-width", 3);
+      }
+
       selectedObjectives.value = [d.obj];
       emit("objectives-select", [d.obj]);
       drawPolygonsOnMap(d.obj);
@@ -1148,9 +1287,36 @@ const animateTransition = (shouldAnimate = true) => {
             ? d.obj.tier > d.obj.baselineTier
               ? colors.redColor
               : colors.lightBlue
-            : "#fff"
+            : "#fff",
         )
-        .attr("stroke-width", isBaseline ? 3 : 1);
+        .attr("stroke-width", 1);
+
+      // Restore companion shape if it exists
+      if (d.shape === "triangle-up" || d.shape === "triangle-down") {
+        const baselineId = `baseline-${d.id}`;
+        svg
+          .selectAll(".animated-shape")
+          .filter((shapeData) => shapeData.id === baselineId)
+          .each(function (baselineData) {
+            const worsened =
+              baselineData.obj.tier > baselineData.obj.baselineTier;
+            d3.select(this)
+              .attr("stroke", worsened ? colors.redColor : colors.lightBlue)
+              .attr("stroke-width", 1)
+              .attr("stroke-dasharray", "2.5,2.5");
+          });
+      }
+
+      if (d.shape === "baseline-rect") {
+        const currentId = d.id.toString().replace("baseline-", "");
+        svg
+          .selectAll(".animated-shape")
+          .filter((shapeData) => shapeData.id.toString() === currentId)
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 1)
+          .attr("stroke-dasharray", "0");
+      }
+
       selectedObjectives.value = [];
       emit("objectives-select", []);
       drawPolygonsOnMap();
@@ -1191,7 +1357,7 @@ const animateTransition = (shouldAnimate = true) => {
         return pos ? pos.y + pos.height / 2 : 0;
       })
       .attr("opacity", 1)
-      .on("end", function(d) {
+      .on("end", function (d) {
         const pos = treemapPosMap.get(d.id);
         const textElement = d3.select(this);
 
@@ -1211,7 +1377,8 @@ const animateTransition = (shouldAnimate = true) => {
         let currentLine = [];
 
         // Create a temporary text element for measurement
-        const tempText = svg.append("text")
+        const tempText = svg
+          .append("text")
           .style("font-size", "10px")
           .style("font-weight", "600")
           .style("visibility", "hidden");
@@ -1243,7 +1410,8 @@ const animateTransition = (shouldAnimate = true) => {
 
         // Add tspans for each line
         lines.forEach((lineText, i) => {
-          textElement.append("tspan")
+          textElement
+            .append("tspan")
             .attr("x", pos.x + pos.width / 2)
             .attr("dy", i === 0 ? startYOffset : lineHeight)
             .text(lineText);
@@ -1313,9 +1481,11 @@ const initializeVisualization = (shouldAnimate = true) => {
   const width = containerRect?.width || 800;
   const height = containerRect?.height || 600;
 
-  d3.select(svgRef.value).selectAll("*").remove();
+  if (!svg) {
+    svg = d3.select(svgRef.value);
+  }
 
-  svg = d3.select(svgRef.value).attr("width", width).attr("height", height);
+  svg.attr("width", width).attr("height", height);
 
   drawTierBackgrounds(width, height);
   drawLabelsAndGrid(width, height);
@@ -1356,12 +1526,17 @@ onMounted(async () => {
 
   // Fetch geoshapes for each tier
   for (const tier of tierShortList) {
-    console.log("Fetching geoshapes for tier:", tier.short_code, "Type:", typeof tier.short_code);
-    if (tier.short_code === 'GW_STOR'){
+    console.log(
+      "Fetching geoshapes for tier:",
+      tier.short_code,
+      "Type:",
+      typeof tier.short_code,
+    );
+    if (tier.short_code === "GW_STOR") {
       console.log("SSDF - Using local GW_STOR data");
       const geoShapes = GW_STOR;
       geoJSONs[tier.short_code] = geoShapes;
-    } else if (tier.short_code === 'RES_STOR'){
+    } else if (tier.short_code === "RES_STOR") {
       const geoShapes = RES_STOR;
       geoJSONs[tier.short_code] = geoShapes;
     } else {
@@ -1378,6 +1553,13 @@ watch(currentScenario, async () => {
   await loadData();
 });
 
+watch(baselineScenario, async () => {
+  // Only reload if we're in comparison mode
+  if (showComparison.value) {
+    await loadData();
+  }
+});
+
 watch(colorMode, () => {
   animateTransition(true);
 });
@@ -1389,7 +1571,8 @@ watch(categoryFilter, () => {
 
 <style scoped>
 svg {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, sans-serif;
 }
 </style>
