@@ -2,6 +2,10 @@ import * as d3 from "d3";
 
 const margin = { top: 60, right: 50, bottom: 150, left: 100 };
 
+const MAX_DOT_SIZE = 16;
+const MIN_DOT_SIZE = 4;
+const CELL_PADDING = 4;
+
 export interface CategoryLayout {
   category: string;
   width: number;
@@ -11,7 +15,7 @@ export interface CategoryLayout {
 export const calculateCategoryWidths = (
   objectives: Objective[],
   categories: string[],
-  gridWidth: number
+  gridWidth: number,
 ): CategoryLayout[] => {
   const dotSize = 16;
   const spacing = dotSize * 1.2;
@@ -115,8 +119,20 @@ export const calculateTierPositions = (
   tiers: string[],
   width: number,
   height: number,
-  showComparison: boolean
-): { positions: Position[]; cellLayouts: Map<string, { contentHeight: number; x: number; y: number; width: number; height: number }> } => {
+  showComparison: boolean,
+): {
+  positions: Position[];
+  cellLayouts: Map<
+    string,
+    {
+      contentHeight: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
+  >;
+} => {
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
 
@@ -124,37 +140,81 @@ export const calculateTierPositions = (
   const categoryLayouts = calculateCategoryWidths(
     objectives,
     categories,
-    gridWidth
+    gridWidth,
   );
   const categoryWidths = new Map(
-    categoryLayouts.map((l) => [l.category, l.width])
+    categoryLayouts.map((l) => [l.category, l.width]),
   );
   const categoryStartX = new Map(
-    categoryLayouts.map((l) => [l.category, l.startX])
+    categoryLayouts.map((l) => [l.category, l.startX]),
   );
 
   const cellHeight = gridHeight / tiers.length;
   const positions: Position[] = [];
-  
-  const getDynamicDotSize = (count: number, cellWidth: number, cellHeight: number) => {
-    const area = cellWidth * cellHeight;
-    const individualArea = area / count;
-    // Aim for a size that fits a grid, leaving some padding
-    return Math.min(16, Math.sqrt(individualArea) * 0.8);
+
+  const computeMaxDotSizeForCell = (
+    count: number,
+    cellWidth: number,
+    cellHeight: number,
+  ) => {
+    if (count <= 0) return MAX_DOT_SIZE;
+
+    for (let size = MAX_DOT_SIZE; size >= MIN_DOT_SIZE; size -= 0.5) {
+      const spacing = size * 1.2;
+      const cols = Math.floor((cellWidth - CELL_PADDING) / spacing);
+      if (cols <= 0) continue;
+      const rows = Math.ceil(count / cols);
+      if (rows * spacing <= cellHeight - CELL_PADDING) {
+        return size;
+      }
+    }
+    return MIN_DOT_SIZE; // fallback
   };
 
-  const dotSize = 16;
-  const spacing = dotSize * 1.2;
+  // Determine a single dot size that fits every populated cell
+  let globalDotSize = MAX_DOT_SIZE;
+  tiers.forEach((tier) => {
+    categories.forEach((category) => {
+      // In comparison mode, a cell can contain both current-tier items and baseline markers
+      const count = showComparison
+        ? objectives.filter(
+            (obj) =>
+              obj.category === category &&
+              (obj.tier === tier || obj.baselineTier === tier),
+          ).length
+        : objectives.filter(
+            (obj) => obj.tier === tier && obj.category === category,
+          ).length;
 
-  
-  const cellLayouts = new Map<string, { contentHeight: number; x: number; y: number; width: number; height: number }>();
+      if (count === 0) return;
+      const cellWidth = categoryWidths.get(category) || 0;
+      const maxSizeForCell = computeMaxDotSizeForCell(
+        count,
+        cellWidth,
+        cellHeight,
+      );
+      globalDotSize = Math.min(globalDotSize, maxSizeForCell);
+    });
+  });
+  const globalSpacing = globalDotSize * 1.2;
+
+  const cellLayouts = new Map<
+    string,
+    {
+      contentHeight: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
+  >();
 
   // Normal mode or comparison mode with triangles
   if (!showComparison) {
     const grouped = d3.group(
       objectives,
       (d) => d.tier,
-      (d) => d.category
+      (d) => d.category,
     );
 
     tiers.forEach((tier, tierIndex) => {
@@ -166,37 +226,28 @@ export const calculateTierPositions = (
 
         const cellWidth = categoryWidths.get(category) || 0;
         const cellStartX = categoryStartX.get(category) || 0;
-        
-        let dotSize = 16; // Start with max desired size
-        let spacing = dotSize * 1.2;
-        let count = cellObjectives.length;
 
-        
-        const safeHeight = cellHeight - 5; 
-        const safeWidth = cellWidth - 5;
-
-        // Iteratively shrink dotSize until everything fits
-        while (dotSize > 4) {
-          spacing = dotSize * 1.2;
-          const cols = Math.floor(safeWidth / spacing);
-          const rows = Math.ceil(count / cols);
-          
-          if (cols > 0 && (rows * spacing) <= safeHeight) {
-            break;
-          }
-          dotSize -= 0.5;
-        }
+        const spacing = globalSpacing;
+        const dotSize = globalDotSize;
+        const safeWidth = cellWidth;
 
         const dotsPerRow = Math.max(1, Math.floor(safeWidth / spacing));
-        
+        const totalCols = dotsPerRow;
+        const totalRows = Math.ceil(cellObjectives.length / dotsPerRow);
+
+        const usedWidth = totalCols * spacing - (spacing - dotSize);
+
+        const offsetX = (safeWidth - usedWidth) / 2;
+        const offsetY = CELL_PADDING;
+
         let maxRow = -1;
 
         cellObjectives.forEach((obj, idx) => {
           const row = Math.floor(idx / dotsPerRow);
           const col = idx % dotsPerRow;
-          
-          const x_rel = col * spacing + dotSize;
-          const y_rel = row * spacing + dotSize;
+
+          const x_rel = offsetX + col * spacing + dotSize / 2;
+          const y_rel = offsetY + row * spacing + dotSize / 2;
 
           positions.push({
             id: obj.id,
@@ -212,15 +263,16 @@ export const calculateTierPositions = (
         });
 
         // Calculate total height required for content
-        const contentHeight = (maxRow === -1) ? 0 : (maxRow + 1) * spacing + dotSize/2;
-        
+        const contentHeight =
+          maxRow === -1 ? 0 : (maxRow + 1) * spacing + dotSize / 2;
+
         // Store cell layout info
         cellLayouts.set(`${tier}-${category}`, {
-            contentHeight,
-            x: margin.left + cellStartX,
-            y: margin.top + tierIndex * cellHeight,
-            width: cellWidth,
-            height: cellHeight,
+          contentHeight,
+          x: margin.left + cellStartX,
+          y: margin.top + tierIndex * cellHeight,
+          width: cellWidth,
+          height: cellHeight,
         });
       });
     });
@@ -229,18 +281,20 @@ export const calculateTierPositions = (
     tiers.forEach((tier, tierIndex) => {
       categories.forEach((category, catIndex) => {
         const categoryObjectives = objectives.filter(
-          (obj) => obj.category === category
+          (obj) => obj.category === category,
         );
 
+        const spacing = globalSpacing;
+        const dotSize = globalDotSize;
         const cellWidth = categoryWidths.get(category) || 0;
         const cellStartX = categoryStartX.get(category) || 0;
         const dotsPerRow = Math.max(
           1,
-          Math.floor((cellWidth - spacing / 2) / spacing)
+          Math.floor((cellWidth - spacing / 2) / spacing),
         );
 
         let currentObjectives = categoryObjectives.filter(
-          (obj) => obj.tier === tier
+          (obj) => obj.tier === tier,
         );
 
         currentObjectives.sort((a, b) => {
@@ -258,7 +312,7 @@ export const calculateTierPositions = (
         });
 
         const movedAwayObjectives = categoryObjectives.filter(
-          (obj) => obj.baselineTier === tier && obj.tier !== tier
+          (obj) => obj.baselineTier === tier && obj.tier !== tier,
         );
 
         let dotIndex = 0;
@@ -315,27 +369,28 @@ export const calculateTierPositions = (
           maxRow = Math.max(maxRow, row);
         });
 
-        const contentHeight = (maxRow === -1) ? 0 : (maxRow + 1) * spacing + dotSize/2;
+        const contentHeight =
+          maxRow === -1 ? 0 : (maxRow + 1) * spacing + dotSize / 2;
 
         // Store cell layout info
         cellLayouts.set(`${tier}-${category}`, {
-            contentHeight,
-            x: margin.left + cellStartX, // abs x
-            y: margin.top + tierIndex * cellHeight, // abs y
-            width: cellWidth,
-            height: cellHeight,
+          contentHeight,
+          x: margin.left + cellStartX, // abs x
+          y: margin.top + tierIndex * cellHeight, // abs y
+          width: cellWidth,
+          height: cellHeight,
         });
       });
     });
   }
 
-  return {positions, cellLayouts};
+  return { positions, cellLayouts };
 };
 
 export const calculateTreemapPositions = (
   objectives: Objective[],
   width: number,
-  height: number
+  height: number,
 ): Position[] => {
   const groupedByCategory = d3.group(objectives, (d) => d.category);
 
@@ -381,11 +436,11 @@ export const calculateTreemapPositions = (
 export const calculateBarPlotPositions = (
   objectives: Objective[],
   width: number,
-  height: number
+  height: number,
 ): Position[] => {
   // Sort objectives by unmetDemand (descending - highest first)
   const sortedObjectives = [...objectives].sort(
-    (a, b) => a.unmetDemand - b.unmetDemand
+    (a, b) => a.unmetDemand - b.unmetDemand,
   );
 
   const plotWidth = width - margin.left - margin.right;
