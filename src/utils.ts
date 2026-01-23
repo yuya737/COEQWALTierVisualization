@@ -66,7 +66,11 @@ export const fetchData = async (scenarioID: string, tiers: string[]) => {
         // TODO: Replace with real water volume data when available
         const seed = index * 9301 + 49297; // Simple LCG parameters
         const pseudoRandom = (seed % 233280) / 233280;
-        const waterVolume = Math.floor(pseudoRandom * (1000 - 10 + 1)) + 10;
+
+        // Use exponential distribution for more variation (cube the random value)
+        const exponentialRandom = Math.pow(pseudoRandom, 3);
+        const waterVolume =
+          Math.floor(exponentialRandom * (5000 - 10 + 1)) + 10;
 
         // Generate unmetDemand (10-80% of waterVolume)
         const seed2 = index * 7919 + 31337; // Different seed for unmetDemand
