@@ -282,6 +282,67 @@ const drawAllPolygonsForCategory = (categoryName) => {
   emit("polygon-select", polygonsWithColor);
 };
 
+// Function to show all polygons for a category and tier combination
+const drawPolygonsForCategoryTier = (categoryName, tierName) => {
+  if (!categoryName || !tierName) {
+    emit("polygon-select", []);
+    selectedObjectives.value = [];
+    emit("objectives-select", []);
+    return;
+  }
+  const short_code = tierShortList.find(
+    (tier) => tier.name === categoryName,
+  )?.short_code;
+  if (!short_code || !geoJSONs[short_code]) {
+    console.warn("No geoshapes found for category:", categoryName);
+    return;
+  }
+
+  // Filter objectives for this specific category and tier
+  const categoryTierObjectives = objectives.filter(
+    (obj) => obj.category === categoryName && obj.tier === tierName,
+  );
+
+  if (categoryTierObjectives.length === 0) {
+    console.warn(
+      "No objectives found for category:",
+      categoryName,
+      "tier:",
+      tierName,
+    );
+    emit("polygon-select", []);
+    selectedObjectives.value = [];
+    emit("objectives-select", []);
+    return;
+  }
+
+  selectedObjectives.value = categoryTierObjectives;
+  emit("objectives-select", categoryTierObjectives);
+
+  // Map polygons with the tier's color
+  const polygonsWithColor = categoryTierObjectives.map((obj) => {
+    const featureIndex =
+      obj.withinCategoryIndex % geoJSONs[short_code]["features"].length;
+    const feature = geoJSONs[short_code]["features"][featureIndex];
+    return {
+      ...feature,
+      properties: {
+        ...feature.properties,
+        fillColor: tierColorMap[tierName],
+      },
+    };
+  });
+
+  console.log(
+    "Polygons for category-tier:",
+    categoryName,
+    tierName,
+    polygonsWithColor,
+  );
+
+  emit("polygon-select", polygonsWithColor);
+};
+
 const switchView = () => {
   console.log("Switched view mode to:", viewMode.value);
   // Disable comparison mode when switching away from tier mode
@@ -654,21 +715,46 @@ const drawTierBackgrounds = (width, height) => {
 
   const tierColors = ["#ECFDF5", "#EFF6FF", "#FEFCE8", "#FEF2F2"];
 
+  // Calculate category widths for positioning
+  const categoryLayouts = calculateCategoryWidths(
+    objectives,
+    categories,
+    gridWidth,
+  );
+
+  // Create data for each tier-category cell
+  const cellBackgrounds = [];
+  tiers.forEach((tier, tierIndex) => {
+    categoryLayouts.forEach((layout) => {
+      cellBackgrounds.push({
+        tier,
+        tierIndex,
+        category: layout.category,
+        x: margin.left + layout.startX,
+        y: margin.top + tierIndex * cellHeight,
+        width: layout.width,
+        height: cellHeight,
+      });
+    });
+  });
+
   const backgrounds = svg
     .selectAll(".tier-background")
-    .data(tiers)
+    .data(cellBackgrounds, (d) => `${d.tier}-${d.category}`)
     .join("rect")
     .attr("class", "tier-background")
-    .attr("x", margin.left)
-    .attr("width", gridWidth)
-    .attr("height", cellHeight)
+    .attr("x", (d) => d.x)
+    .attr("y", (d) => d.y)
+    .attr("width", (d) => d.width)
+    .attr("height", (d) => d.height)
+    .attr("fill", (d) => tierColors[d.tierIndex])
     .attr("stroke", "#D1D5DB")
-    .attr("stroke-width", 0.5);
-
-  backgrounds
-    .attr("y", (d, i) => margin.top + i * cellHeight)
-    .attr("fill", (d, i) => tierColors[i])
-    .attr("opacity", viewMode.value === "tier" ? 1 : 0);
+    .attr("stroke-width", 0.5)
+    .attr("opacity", viewMode.value === "tier" ? 1 : 0)
+    .style("cursor", "pointer")
+    .on("click", function (_event, d) {
+      drawPolygonsForCategoryTier(d.category, d.tier);
+    });
 
   return backgrounds;
 };
@@ -861,7 +947,6 @@ const drawLegends = (width, height) => {
 
     // Title
     svg
-      .append("text")
       .attr("class", "legend-item")
       .attr("x", legendX)
       .attr("y", legendY)

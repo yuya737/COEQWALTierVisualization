@@ -17,13 +17,6 @@ const mapContainer = ref(null);
 let deck: any = null;
 let map: any = null;
 
-// Sample data - replace with actual lat/lon data
-const sampleData = [
-  { position: [-122.4, 37.8], size: 100, color: [255, 0, 0] },
-  { position: [-122.5, 37.9], size: 100, color: [0, 255, 0] },
-  { position: [-122.3, 37.7], size: 100, color: [0, 0, 255] },
-];
-
 const props = defineProps({
   data: {
     type: Array,
@@ -67,7 +60,7 @@ const getLayers = () => {
         getLineWidth: 2,
         lineWidthMinPixels: 2,
         pickable: true,
-      })
+      }),
     );
   }
 
@@ -162,7 +155,7 @@ watch(
       });
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 watch(
@@ -192,7 +185,7 @@ watch(
       });
     }
   },
-  { deep: true }
+  { deep: true },
 );
 </script>
 
