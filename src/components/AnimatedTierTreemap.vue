@@ -138,10 +138,50 @@
         >
           {{ showComparison ? "Hide Comparison" : "Compare to Baseline" }}
         </button>
+
+        <!-- Category Comparison Chart Button -->
+        <button
+          @click="showCategoryChart = !showCategoryChart"
+          :disabled="viewMode !== 'tier' || !showComparison"
+          class="px-4 py-1.5 border border-gray-300 rounded-md text-sm font-semibold transition-colors"
+          :class="
+            viewMode !== 'tier' || !showComparison
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
+          "
+        >
+          View Category Summary
+        </button>
       </div>
     </div>
     <div class="flex-1 overflow-auto">
       <svg ref="svgRef"></svg>
+    </div>
+
+    <!-- Category Comparison Chart Modal -->
+    <div
+      v-if="showCategoryChart"
+      @click.self="showCategoryChart = false"
+      class="absolute inset-0 bg-opacity-50 flex items-center justify-center z-50 p-10"
+    >
+      <div
+        class="bg-white rounded-lg shadow-xl max-w-4xl w-full overflow-hidden relative"
+        style="height: 500px"
+      >
+        <button
+          @click="showCategoryChart = false"
+          class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold z-10"
+        >
+          ×
+        </button>
+        <CategoryComparisonChart
+          :objectives="objectives"
+          :currentScenario="currentScenario"
+          :baselineScenario="baselineScenario"
+          :categories="categories"
+          :tiers="tiers"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -157,6 +197,7 @@ import {
 } from "../utils";
 import GW_STOR from "../GW_STOR";
 import RES_STOR from "../RES_STOR";
+import CategoryComparisonChart from "./CategoryComparisonChart.vue";
 
 import {
   calculateBarPlotPositions,
@@ -176,6 +217,7 @@ const showComparison = ref(false);
 const colorMode = ref("default"); // "default", "tier", "category", or "waterVolume"
 const selectedObjectives = ref([]);
 const categoryFilter = ref("all"); // "all" or specific category name
+const showCategoryChart = ref(false);
 let objectives = [];
 let categories = [];
 let svg = null;
