@@ -39,7 +39,7 @@ const props = defineProps({
 
 const svgRef = ref(null);
 
-const margin = { top: 30, right: 30, bottom: 200, left: 80 };
+const margin = { top: 30, right: 30, bottom: 150, left: 80 };
 
 // Calculate statistics per category
 const categoryStats = computed(() => {
@@ -466,7 +466,7 @@ const drawChart = () => {
     .attr("transform", `translate(0,${chartHeight * 1.1})`)
     .call(xAxis)
     .selectAll("text")
-    .attr("transform", "rotate(-45)")
+    .attr("transform", "rotate(-20)")
     .style("text-anchor", "end")
     .style("font-size", "12px");
 
