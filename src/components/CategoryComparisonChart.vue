@@ -92,152 +92,6 @@ const categoryStats = computed(() => {
   return stats;
 });
 
-// Generate natural language summary
-const summary = computed(() => {
-  const getDirection = (stat) => {
-    const { improvedPct, worsenedPct, unchangedPct } = stat;
-
-    // Thresholds for classification
-    const DOMINANT_THRESHOLD = 70; // 70%+ for strong direction
-    const MAJORITY_THRESHOLD = 50; // 50%+ for majority
-    const MIXED_THRESHOLD = 30; // 30%+ for mixed
-
-    if (unchangedPct > DOMINANT_THRESHOLD) {
-      return "unaffected";
-    }
-
-    if (improvedPct > DOMINANT_THRESHOLD) {
-      return "positive";
-    }
-
-    if (worsenedPct > DOMINANT_THRESHOLD) {
-      return "negative";
-    }
-
-    if (improvedPct > MAJORITY_THRESHOLD && worsenedPct < MIXED_THRESHOLD) {
-      return "mostly positive";
-    }
-
-    if (worsenedPct > MAJORITY_THRESHOLD && improvedPct < MIXED_THRESHOLD) {
-      return "mostly negative";
-    }
-
-    if (improvedPct > worsenedPct && improvedPct >= MIXED_THRESHOLD) {
-      return "mixed-positive";
-    }
-
-    if (worsenedPct > improvedPct && worsenedPct >= MIXED_THRESHOLD) {
-      return "mixed-negative";
-    }
-
-    return "mixed-neutral";
-  };
-
-  const categorizedStats = categoryStats.value.map((stat) => ({
-    ...stat,
-    direction: getDirection(stat),
-  }));
-
-  // Group categories by direction
-  const positive = categorizedStats.filter((s) => s.direction === "positive");
-  const mostlyPositive = categorizedStats.filter(
-    (s) => s.direction === "mostly positive",
-  );
-  const mixedPositive = categorizedStats.filter(
-    (s) => s.direction === "mixed-positive",
-  );
-  const negative = categorizedStats.filter((s) => s.direction === "negative");
-  const mostlyNegative = categorizedStats.filter(
-    (s) => s.direction === "mostly negative",
-  );
-  const mixedNegative = categorizedStats.filter(
-    (s) => s.direction === "mixed-negative",
-  );
-  const mixedNeutral = categorizedStats.filter(
-    (s) => s.direction === "mixed-neutral",
-  );
-  const unaffected = categorizedStats.filter(
-    (s) => s.direction === "unaffected",
-  );
-
-  // Build summary text
-  const parts = [];
-  let hasUnaffected = false;
-
-  if (positive.length > 0) {
-    parts.push(
-      `${positive.map((s) => s.category).join(", ")} show positive effects`,
-    );
-  }
-
-  if (mostlyPositive.length > 0) {
-    parts.push(
-      `${mostlyPositive.map((s) => s.category).join(", ")} show mostly positive effects`,
-    );
-  }
-
-  if (mixedPositive.length > 0) {
-    parts.push(
-      `${mixedPositive.map((s) => s.category).join(", ")} show mixed-positive effects`,
-    );
-  }
-
-  if (negative.length > 0) {
-    parts.push(
-      `${negative.map((s) => s.category).join(", ")} show negative effects`,
-    );
-  }
-
-  if (mostlyNegative.length > 0) {
-    parts.push(
-      `${mostlyNegative.map((s) => s.category).join(", ")} show mostly negative effects`,
-    );
-  }
-
-  if (mixedNegative.length > 0) {
-    parts.push(
-      `${mixedNegative.map((s) => s.category).join(", ")} show mixed-negative effects`,
-    );
-  }
-
-  if (mixedNeutral.length > 0) {
-    parts.push(
-      `${mixedNeutral.map((s) => s.category).join(", ")} show mixed-neutral effects`,
-    );
-  }
-
-  // Check if there are unaffected categories
-  if (unaffected.length > 0) {
-    hasUnaffected = true;
-  }
-
-  if (parts.length === 0 && !hasUnaffected) {
-    return "No significant changes detected.";
-  }
-
-  if (parts.length === 0 && hasUnaffected) {
-    return "All categories remain unaffected.";
-  }
-
-  // Join with proper grammar
-  let result = "";
-  if (parts.length === 1) {
-    result = parts[0];
-  } else if (parts.length === 2) {
-    result = parts.join(" and ");
-  } else {
-    const lastPart = parts.pop();
-    result = parts.join(", ") + ", and " + lastPart;
-  }
-
-  // Add "the rest unaffected" if there are unaffected categories
-  if (hasUnaffected) {
-    result += ", the rest unaffected";
-  }
-
-  return result + ".";
-});
-
 // Generate HTML version with bold categories and colored directions
 const summaryHTML = computed(() => {
   const getDirection = (stat) => {
@@ -246,6 +100,7 @@ const summaryHTML = computed(() => {
     // Thresholds for classification
     const DOMINANT_THRESHOLD = 70;
     const MAJORITY_THRESHOLD = 50;
+    const MINORITY_THRESHOLD = 30;
 
     if (unchangedPct == 100) {
       return "unaffected";
@@ -254,18 +109,26 @@ const summaryHTML = computed(() => {
     // Mixed requires BOTH improved AND worsened objectives
     const hasBoth = improved > 0 && worsened > 0;
 
+    const getPrefix = (percentInDirection) => {
+      console.log("Percent in direction:", percentInDirection);
+      if (percentInDirection > DOMINANT_THRESHOLD) {
+        return "";
+      }
+      if (percentInDirection > MAJORITY_THRESHOLD) {
+        return "mostly ";
+      }
+      if (percentInDirection > MINORITY_THRESHOLD) {
+        return "some ";
+      }
+      return "slight ";
+    };
+
     if (!hasBoth) {
       // Pure positive or negative (no mixing)
-      if (improved > 0 && worsened === 0) {
-        return stat.improvedPct > DOMINANT_THRESHOLD
-          ? "positive"
-          : "mostly positive";
-      }
-      if (worsened > 0 && improved === 0) {
-        return stat.worsenedPct > DOMINANT_THRESHOLD
-          ? "negative"
-          : "mostly negative";
-      }
+      if (improved > 0 && worsened === 0)
+        return getPrefix(stat.improvedPct) + "positive";
+      if (worsened > 0 && improved === 0)
+        return getPrefix(stat.worsenedPct) + "negative";
     }
 
     // Has both - classify as mixed
@@ -303,10 +166,10 @@ const summaryHTML = computed(() => {
     if (direction === "negative" || direction === "mostly negative") {
       return "#EF4444"; // Red
     }
-    if (direction === "mixed-positive") {
+    if (direction === "mixed-positive" || direction === "slight positive") {
       return "#60A5FA"; // Light blue
     }
-    if (direction === "mixed-negative") {
+    if (direction === "mixed-negative" || direction === "slight negative") {
       return "#F87171"; // Light red
     }
     return "#6B7280"; // Gray for neutral/unaffected
@@ -327,71 +190,35 @@ const summaryHTML = computed(() => {
   console.log(categorizedStats);
 
   // Group categories by direction
-  const positive = categorizedStats.filter((s) => s.direction === "positive");
-  const mostlyPositive = categorizedStats.filter(
-    (s) => s.direction === "mostly positive",
-  );
-  const mixedPositive = categorizedStats.filter(
-    (s) => s.direction === "mixed-positive",
-  );
-  const negative = categorizedStats.filter((s) => s.direction === "negative");
-  const mostlyNegative = categorizedStats.filter(
-    (s) => s.direction === "mostly negative",
-  );
-  const mixedNegative = categorizedStats.filter(
-    (s) => s.direction === "mixed-negative",
-  );
-  const mixedNeutral = categorizedStats.filter(
-    (s) => s.direction === "mixed-neutral",
-  );
-  const unaffected = categorizedStats.filter(
-    (s) => s.direction === "unaffected",
-  );
-
-  // Build summary text with HTML
+  const directionGroups = new Map();
+  categorizedStats.forEach((stat) => {
+    if (!directionGroups.has(stat.direction)) {
+      directionGroups.set(stat.direction, []);
+    }
+    directionGroups.get(stat.direction).push(stat);
+  });
   const parts = [];
-  let hasUnaffected = false;
+  const directionOrder = [
+    "positive",
+    "mostly positive",
+    "slight positive",
+    "mixed-positive",
+    "negative",
+    "mostly negative",
+    "slight negative",
+    "mixed-negative",
+    "mixed-neutral",
+  ];
 
-  if (positive.length > 0) {
-    parts.push(formatCategoryGroup(positive, "show positive effects"));
-  }
+  directionOrder.forEach((direction) => {
+    const stats = directionGroups.get(direction);
+    console.log("Processing direction:", direction, stats);
+    if (stats && stats.length > 0) {
+      parts.push(formatCategoryGroup(stats, `show ${direction} effects`));
+    }
+  });
 
-  if (mostlyPositive.length > 0) {
-    parts.push(
-      formatCategoryGroup(mostlyPositive, "show mostly positive effects"),
-    );
-  }
-
-  if (mixedPositive.length > 0) {
-    parts.push(
-      formatCategoryGroup(mixedPositive, "show mixed-positive effects"),
-    );
-  }
-
-  if (negative.length > 0) {
-    parts.push(formatCategoryGroup(negative, "show negative effects"));
-  }
-
-  if (mostlyNegative.length > 0) {
-    parts.push(
-      formatCategoryGroup(mostlyNegative, "show mostly negative effects"),
-    );
-  }
-
-  if (mixedNegative.length > 0) {
-    parts.push(
-      formatCategoryGroup(mixedNegative, "show mixed-negative effects"),
-    );
-  }
-
-  if (mixedNeutral.length > 0) {
-    parts.push(formatCategoryGroup(mixedNeutral, "show mixed-neutral effects"));
-  }
-
-  // Check if there are unaffected categories
-  if (unaffected.length > 0) {
-    hasUnaffected = true;
-  }
+  const hasUnaffected = directionGroups.has("unaffected");
 
   if (parts.length === 0 && !hasUnaffected) {
     return "No significant changes detected.";
@@ -560,16 +387,7 @@ const drawChart = () => {
     .attr("text-anchor", "middle")
     .style("font-size", "14px")
     .style("font-weight", "600")
-    .text("Percentage of Objectives");
-
-  svg
-    .append("text")
-    .attr("x", width / 2)
-    .attr("y", height - 10)
-    .attr("text-anchor", "middle")
-    .style("font-size", "14px")
-    .style("font-weight", "600")
-    .text("Category");
+    .text("Percentage of Tiers");
 
   // Legend
   const legend = svg

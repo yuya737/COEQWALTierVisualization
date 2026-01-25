@@ -1,6 +1,17 @@
 <template>
   <div class="w-full h-full relative">
     <div ref="mapContainer" class="w-full h-full"></div>
+    <div
+      v-if="hoveredFeature"
+      class="absolute bg-white px-3 py-2 rounded shadow-lg text-sm pointer-events-none z-50 border border-gray-300"
+      :style="{
+        left: tooltipPosition.x + 'px',
+        top: tooltipPosition.y + 'px',
+      }"
+    >
+      <strong>ID:</strong>
+      {{ hoveredFeature.id || hoveredFeature.properties?.id || "N/A" }}
+    </div>
   </div>
 </template>
 
@@ -16,6 +27,9 @@ import { featureCollection } from "@turf/helpers";
 const mapContainer = ref(null);
 let deck: any = null;
 let map: any = null;
+
+const hoveredFeature = ref(null);
+const tooltipPosition = ref({ x: 0, y: 0 });
 
 const props = defineProps({
   data: {
@@ -54,12 +68,21 @@ const getLayers = () => {
         filled: true,
         stroked: true,
         getFillColor: (f) => f.properties.fillColor || [60, 165, 250, 100], // Semi-transparent blue
-        getLineColor: [60, 165, 250, 255], // Solid blue outline
+        getLineColor: [60, 60, 60, 255], // Solid blue outline
         getPointColor: [250, 165, 60, 255],
         getPointRadius: 10000,
-        getLineWidth: 2,
-        lineWidthMinPixels: 2,
+        getLineWidth: 0.1,
+        lineWidthMinPixels: 0.1,
         pickable: true,
+        opacity: 0.15,
+        onHover: (info: any) => {
+          if (info.object) {
+            hoveredFeature.value = info.object as any;
+            tooltipPosition.value = { x: info.x, y: info.y };
+          } else {
+            hoveredFeature.value = null;
+          }
+        },
       }),
     );
   }
@@ -92,7 +115,7 @@ const initDeck = () => {
     canvas.style.top = "0";
     canvas.style.width = "100%";
     canvas.style.height = "100%";
-    canvas.style.pointerEvents = "none"; // Let map handle interactions
+    canvas.style.pointerEvents = "auto"; // Enable pointer events for hover
     mapContainer.value.appendChild(canvas);
 
     // Initialize Deck.gl overlay
@@ -107,13 +130,14 @@ const initDeck = () => {
         pitch: map.getPitch(),
         bearing: map.getBearing(),
       },
-      controller: false, // Let Mapbox handle controls
+      controller: true, // Enable controller for hover events
       layers: getLayers(),
+      getCursor: () => "default", // Keep default cursor, let map handle panning
     });
 
     // Sync deck.gl view with Mapbox map movements
     const updateDeckView = () => {
-      if (deck) {
+      if (deck && !deck._isUpdating) {
         deck.setProps({
           viewState: {
             longitude: map.getCenter().lng,
@@ -126,7 +150,28 @@ const initDeck = () => {
       }
     };
 
-    map.on("move", updateDeckView);
+    // Sync Mapbox with deck.gl interactions
+    deck.setProps({
+      onViewStateChange: ({ viewState }: any) => {
+        if (map && !map._isUpdating) {
+          map._isUpdating = true;
+          map.jumpTo({
+            center: [viewState.longitude, viewState.latitude],
+            zoom: viewState.zoom,
+            bearing: viewState.bearing,
+            pitch: viewState.pitch,
+          });
+          map._isUpdating = false;
+        }
+        return viewState;
+      },
+    });
+
+    map.on("move", () => {
+      map._isUpdating = true;
+      updateDeckView();
+      map._isUpdating = false;
+    });
     map.on("zoom", updateDeckView);
     map.on("rotate", updateDeckView);
     map.on("pitch", updateDeckView);

@@ -74,16 +74,6 @@
             />
             <span class="text-sm">Treemap</span>
           </label>
-          <label class="flex items-center gap-1.5 cursor-pointer">
-            <input
-              type="radio"
-              value="barplot"
-              v-model="viewMode"
-              @change="switchView"
-              class="cursor-pointer"
-            />
-            <span class="text-sm">Equity Bar Plot</span>
-          </label>
         </div>
 
         <!-- Divider -->
@@ -136,7 +126,7 @@
                 : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
           "
         >
-          {{ showComparison ? "Hide Comparison" : "Compare to Baseline" }}
+          {{ showComparison ? "Hide Comparison" : "Compare to a Baseline" }}
         </button>
 
         <!-- Category Comparison Chart Button -->
@@ -150,7 +140,7 @@
               : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
           "
         >
-          View Category Summary
+          View Comparison Summary
         </button>
       </div>
     </div>
@@ -277,6 +267,7 @@ const drawPolygonsOnMap = (objective) => {
     properties: {
       ...polygonswithoutColor.properties,
       fillColor: initFillColor,
+      id: objective.id,
     },
   };
 
@@ -314,6 +305,7 @@ const drawAllPolygonsForCategory = (categoryName) => {
         properties: {
           ...feature.properties,
           fillColor: tierColorMap[obj.tier],
+          id: obj.id,
         },
       };
     },
@@ -371,6 +363,7 @@ const drawPolygonsForCategoryTier = (categoryName, tierName) => {
       properties: {
         ...feature.properties,
         fillColor: tierColorMap[tierName],
+        id: obj.id,
       },
     };
   });
@@ -809,7 +802,7 @@ const drawLegends = (width, height) => {
   // Comparison mode legend (only in tier mode with comparison)
   if (viewMode.value === "tier" && showComparison.value) {
     const legendX = margin.left;
-    const legendY = margin.top - 20; // Position at top
+    const legendY = margin.top - 25; // Position at top
     const legendItemSize = 18;
     const legendSpacing = 120;
 
@@ -899,7 +892,7 @@ const drawLegends = (width, height) => {
       .domain(waterVolumeExtent);
 
     const legendX = width - 200;
-    const legendY = height - margin.bottom + 80;
+    const legendY = 0;
     const gradientWidth = 150;
     const gradientHeight = 20;
 
@@ -1002,7 +995,7 @@ const drawLegends = (width, height) => {
   // Category legend (when category color mode is active)
   if (colorMode.value === "category") {
     const legendX = margin.left;
-    const legendY = margin.top - 25; // Position at top
+    const legendY = 0; // Position at top
     const colorBoxSize = 14;
     const itemSpacing = 15;
     const rowSpacing = 22;
@@ -1052,7 +1045,7 @@ const drawLegends = (width, height) => {
   // Tier legend (when tier color mode is active)
   if (colorMode.value === "tier" && !showComparison.value) {
     const legendX = margin.left;
-    const legendY = margin.top - 25; // Position at top
+    const legendY = 0; // Position at top
     const colorBoxSize = 14;
     const itemSpacing = 15;
     const rowSpacing = 22;
