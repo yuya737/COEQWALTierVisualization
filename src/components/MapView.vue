@@ -12,6 +12,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import centroid from "@turf/centroid";
 import { featureCollection } from "@turf/helpers";
+import { MapboxOverlay } from '@deck.gl/mapbox';
 
 const mapContainer = ref(null);
 let deck: any = null;
@@ -51,6 +52,7 @@ const props = defineProps({
 
 const getLayers = () => {
   const layers: any[] = [];
+  const hoveredFeature = ref(null);
 
   // Add GeoJSON polygon layer if polygons are provided
   if (props.polygons && props.polygons.length > 0) {
@@ -67,12 +69,22 @@ const getLayers = () => {
         getLineWidth: 2,
         lineWidthMinPixels: 2,
         pickable: true,
+        onHover: (info) => {
+          if( info.object ) {
+            console.log("HOVER OVER POLYGON WORKS");
+          }
+          else {
+            console.log("Hovering over map");
+          }
+        },
       })
     );
   }
 
   return layers;
 };
+
+let overlay: any = null;
 
 const initDeck = () => {
   if (!mapContainer.value) return;
@@ -91,6 +103,15 @@ const initDeck = () => {
   });
 
   map.on("load", () => {
+    overlay = new MapboxOverlay({
+        layers: []
+    });
+    map.addControl(overlay);
+
+    overlay.setProps({
+      layers: getLayers()
+    });
+
     // Create canvas for deck.gl
     const canvas = document.createElement("canvas");
     canvas.id = "deck-canvas";
@@ -164,6 +185,14 @@ watch(
   },
   { deep: true }
 );
+
+watch(props.polygons, () => {
+    if(!overlay) return;
+    
+    overlay.setProps({
+      layers: getLayers()
+    });
+});
 
 watch(
   () => props.polygons,

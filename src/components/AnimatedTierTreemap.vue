@@ -105,7 +105,7 @@ import {
   calculateBarPlotPositions, calculateTierPositions, calculateTreemapPositions, calculateCategoryWidths
 } from "../UnitVisPositionCalculation"
 
-const emit = defineEmits(["polygon-select", "objectives-select"]);
+const emit = defineEmits(["polygon-select", "objectives-select", "objectives-init"]);
 
 const svgRef = ref(null);
 const currentScenario = ref("s0011");
@@ -198,7 +198,7 @@ const drawAllPolygonsForCategory = (categoryName) => {
   emit("objectives-select", categoryObjectives);
 
   // debugger
-  const polygonsWithColor = geoJSONs[short_code]["features"].map((feature, index) => {
+  const polygonsWithColor = geoJSONs[short_code]["features"].flatMap((feature, index) => {
     const obj = categoryObjectives[index % categoryObjectives.length];
     return {
       ...feature,
@@ -213,6 +213,37 @@ const drawAllPolygonsForCategory = (categoryName) => {
 
   emit("polygon-select", polygonsWithColor);
 };
+
+const drawAllPolygons = () => {
+  // Collect all features from all GeoJSONs
+  const allPolygons = Object.values(geoJSONs)
+    .flatMap(fc => fc.features)
+    .map(feature => ({
+      ...feature,
+      properties: {
+        ...feature.properties,
+        fillColor:
+          tierColorMap[feature.properties?.tier] ??
+          [180, 180, 180, 0]
+      }
+    }));
+
+  // Clear objective selection since category no longer matters
+  selectedObjectives.value = [];
+  emit("objectives-select", []);
+
+  emit("polygon-select", allPolygons);
+};
+
+const updateMapFromSelection = (objectives) => {
+  if (!objectives || objectives.length === 0) {
+    drawPolygonsOnMap();
+  } else {
+    drawPolygonsOnMap(objectives[0]);
+  }
+};
+
+defineExpose({ updateMapFromSelection });
 
 const switchView = () => {
   console.log("Switched view mode to:", viewMode.value);
@@ -1315,7 +1346,9 @@ const loadData = async () => {
     };
   });
 
+  emit("objectives-init", objectives);
   console.log("Loaded objectives:", objectives);
+
   initializeVisualization();
 };
 
