@@ -2,13 +2,12 @@
 import { ref } from "vue";
 import AnimatedTierTreemap from "./components/AnimatedTierTreemap.vue";
 import MapView from "./components/MapView.vue";
-import SelectedObjectivesList from "./components/SelectedObjectivesList.vue";
 
 const treemapRef = ref(null);
 const selectedPolygons = ref([]);
 const allObjectives = ref([]);
 const selectedObjectives = ref([]);
-const searchBarVal = ref('');
+const searchBarVal = ref("");
 
 const handlePolygonSelect = (polygonData) => {
   selectedPolygons.value = polygonData;
@@ -36,19 +35,22 @@ const searchObjectives = () => {
     return;
   }
 
-  const match = allObjectives.value.filter(
-    obj => obj.id === input
-  );
+  const match = allObjectives.value.filter((obj) => obj.id === input);
 
   // Find objective with ID match
   selectedObjectives.value = match;
   treemapRef.value.updateMapFromSelection(match);
 };
+
+const clearSearch = () => {
+  searchBarVal.value = "";
+  treemapRef.value.updateMapFromSelection([]);
+};
 </script>
 
 <template>
   <div class="w-full h-screen flex flex-row">
-    <div class="h-full flex-[5] bg-white shadow">
+    <div class="h-full flex-[7] bg-white shadow">
       <AnimatedTierTreemap
         class="h-full"
         ref="treemapRef"
@@ -58,8 +60,24 @@ const searchObjectives = () => {
       />
     </div>
     <div class="h-full flex-[2] bg-white shadow p-5 flex flex-col gap-4">
-      <SelectedObjectivesList :selectedObjectives="selectedObjectives" />
-      <input type="text" v-model="searchBarVal" @keyup="searchObjectives" id="searchObjectivesBar" placeholder="Search for objectives by ID" />
+      <!-- <SelectedObjectivesList :selectedObjectives="selectedObjectives" /> -->
+      <div class="relative">
+        <input
+          type="text"
+          v-model="searchBarVal"
+          @keyup="searchObjectives"
+          id="searchObjectivesBar"
+          placeholder="Search for outcomes by ID"
+          class="w-full pr-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          v-if="searchBarVal"
+          @click="clearSearch"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xl leading-none"
+        >
+          ×
+        </button>
+      </div>
       <div class="flex-1 min-h-0">
         <MapView :polygons="selectedPolygons" />
       </div>

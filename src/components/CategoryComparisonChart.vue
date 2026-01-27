@@ -1,7 +1,7 @@
 <template>
   <div class="w-full h-full bg-white p-4 flex flex-col">
     <h3 class="text-base font-semibold text-gray-800 mb-1">
-      Category Comparison: {{ currentScenario }} vs {{ baselineScenario }}
+      Comparing {{ currentScenario }} vs. {{ baselineScenario }}
     </h3>
     <div class="flex-1 w-full">
       <svg ref="svgRef" class="w-full h-full"></svg>
@@ -387,7 +387,7 @@ const drawChart = () => {
     .attr("text-anchor", "middle")
     .style("font-size", "14px")
     .style("font-weight", "600")
-    .text("Percentage of Tiers");
+    .text("Percentage of Outcomes");
 
   // Legend
   const legend = svg

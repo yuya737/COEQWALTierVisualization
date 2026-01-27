@@ -19,12 +19,14 @@ export const calculateMeanTier = (objectives: any[]): number => {
 };
 
 const processSingleValueData = (tierData: any) => {
+  console.log("Processing single value data:", tierData);
   return [
     { category: tierData.name, tier: tierData.level, withinCategoryIndex: 0 },
   ];
 };
 
 const processMultiValueData = (tierData: any) => {
+  console.log("Processing multi value data:", tierData);
   const data = tierData.data;
   const ret: any[] = [];
   let counter = 0;
@@ -46,7 +48,7 @@ const processMultiValueData = (tierData: any) => {
 export const fetchData = async (scenarioID: string, tiers: string[]) => {
   try {
     const response = await fetch(
-      `${API_ROOT}/tiers/scenarios/${scenarioID}/tiers`
+      `${API_ROOT}/tiers/scenarios/${scenarioID}/tiers`,
     );
     const data = await response.json();
     const categories = Object.values(data.tiers).map((value: any) => {
@@ -113,7 +115,7 @@ export const fetchGeoShapes = async (short_code: string) => {
   } catch (error) {
     console.error(
       `Error fetching geoshapes for scenario ${short_code}:`,
-      error
+      error,
     );
   }
 };

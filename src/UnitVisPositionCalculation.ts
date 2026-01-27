@@ -276,10 +276,14 @@ export const calculateTierPositions = (
           const x_rel = col * spacing + dotSize;
           const y_rel = row * spacing + dotSize;
 
+          // Calculate global position
+          const globalX = margin.left + cellStartX + x_rel - dotSize / 2;
+          const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
+
           positions.push({
             id: obj.id,
-            x: x_rel - dotSize / 2,
-            y: y_rel - dotSize / 2,
+            x: globalX,
+            y: globalY,
             width: dotSize,
             height: dotSize,
             obj: obj,
@@ -365,10 +369,14 @@ export const calculateTierPositions = (
             shape = "triangle-down";
           }
 
+          // Calculate global position
+          const globalX = margin.left + cellStartX + x_rel - dotSize / 2;
+          const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
+
           positions.push({
             id: obj.id,
-            x: x_rel - dotSize / 2,
-            y: y_rel - dotSize / 2,
+            x: globalX,
+            y: globalY,
             width: dotSize,
             height: dotSize,
             obj: obj,
@@ -386,10 +394,14 @@ export const calculateTierPositions = (
           const x_rel = col * spacing + dotSize;
           const y_rel = row * spacing + dotSize;
 
+          // Calculate global position
+          const globalX = margin.left + cellStartX + x_rel - dotSize / 2;
+          const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
+
           positions.push({
             id: `baseline-${obj.id}`,
-            x: x_rel - dotSize / 2,
-            y: y_rel - dotSize / 2,
+            x: globalX,
+            y: globalY,
             width: dotSize,
             height: dotSize,
             obj: obj,
