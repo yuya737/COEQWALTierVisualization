@@ -1,5 +1,5 @@
 // Use CORS proxy (temporary solution for GitHub Pages deployment)
-const USE_CORS_PROXY = true; // Set to false when running locally or when API supports CORS
+const USE_CORS_PROXY = false; // Set to false when running locally or when API supports CORS
 
 const CORS_PROXY = "https://cors-anywhere.com/";
 
