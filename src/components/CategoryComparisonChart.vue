@@ -110,7 +110,6 @@ const summaryHTML = computed(() => {
     const hasBoth = improved > 0 && worsened > 0;
 
     const getPrefix = (percentInDirection) => {
-      console.log("Percent in direction:", percentInDirection);
       if (percentInDirection > DOMINANT_THRESHOLD) {
         return "";
       }
@@ -187,7 +186,6 @@ const summaryHTML = computed(() => {
     ...stat,
     direction: getDirection(stat),
   }));
-  console.log(categorizedStats);
 
   // Group categories by direction
   const directionGroups = new Map();
@@ -212,7 +210,6 @@ const summaryHTML = computed(() => {
 
   directionOrder.forEach((direction) => {
     const stats = directionGroups.get(direction);
-    console.log("Processing direction:", direction, stats);
     if (stats && stats.length > 0) {
       parts.push(formatCategoryGroup(stats, `show ${direction} effects`));
     }

@@ -7,7 +7,7 @@
       <h2 class="font-semibold text-gray-800 m-0 text-lg">
         {{
           showComparison
-            ? `Viewing scenario ${currentScenario} against ${baselineScenario}`
+            ? `Comparing ${currentScenario} and ${baselineScenario}`
             : `Viewing scenario ${currentScenario}`
         }}
       </h2>
@@ -16,7 +16,9 @@
       <div class="flex gap-4 items-center flex-wrap">
         <!-- Scenario Selection -->
         <div class="flex gap-2 items-center">
-          <label class="text-sm font-semibold text-gray-700">Scenario:</label>
+          <label class="text-sm font-semibold text-gray-700">
+            {{ showComparison ? "Scenario 1:" : "Scenario:" }}
+          </label>
           <select
             v-model="currentScenario"
             class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
@@ -63,7 +65,7 @@
 
         <!-- Baseline Scenario Selection (only shown in comparison mode) -->
         <div v-if="showComparison" class="flex gap-2 items-center">
-          <label class="text-sm font-semibold text-gray-700">Baseline:</label>
+          <label class="text-sm font-semibold text-gray-700">Scenario 2:</label>
           <select
             v-model="baselineScenario"
             class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"

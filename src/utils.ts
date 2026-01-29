@@ -1,6 +1,10 @@
 // Use CORS proxy (temporary solution for GitHub Pages deployment)
-// const API_ROOT = "https://corsproxy.io/https://api.coeqwal.org/api";
-const API_ROOT = "https://api.coeqwal.org/api";
+const USE_CORS_PROXY = true; // Set to false when running locally or when API supports CORS
+
+const CORS_PROXY = "https://cors-anywhere.com/";
+
+const API_BASE = "https://api.coeqwal.org/api";
+const API_ROOT = USE_CORS_PROXY ? `${CORS_PROXY}${API_BASE}` : API_BASE;
 
 export const calculateMeanTier = (objectives: any[]): number => {
   if (!objectives || objectives.length === 0) {
