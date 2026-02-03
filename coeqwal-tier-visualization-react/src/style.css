@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+.category-label-group .tier-group-label-group {
+    max-width: 25px;
+}

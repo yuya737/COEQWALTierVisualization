@@ -1,4 +1,4 @@
-const GW_STOR = {
+{
     "type": "FeatureCollection",
     "features": [
         {
@@ -363806,5 +363806,4 @@ const GW_STOR = {
             "wba"
         ]
     }
-};
-export default  GW_STOR;
+}

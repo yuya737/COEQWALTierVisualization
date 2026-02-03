@@ -1,5 +1,5 @@
 
-const RES_STOR = {
+{
     "type": "FeatureCollection",
     "features": [
         {
@@ -340854,4 +340854,3 @@ const RES_STOR = {
         ]
     }
 }
-export default  RES_STOR;
