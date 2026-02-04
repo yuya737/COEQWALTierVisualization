@@ -75,7 +75,7 @@ const startTour = () => {
       {
         element: document.querySelector(".animated-shape"),
         intro:
-          "Each box represents a location node. Hover over shapes for details, click to select and view on the map.",
+          "Each box represents a location node, and each node has a tier assignment in COEQWAL. Hover over shapes for details, click to select and view on the map.",
         position: "right",
       },
       {
