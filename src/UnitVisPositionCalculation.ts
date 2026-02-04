@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 
-const margin = { top: 60, right: 50, bottom: 150, left: 60 };
+const margin = { top: 60, right: 10, bottom: 150, left: 60 };
 
 const MAX_DOT_SIZE = 16;
 const MIN_DOT_SIZE = 4;
