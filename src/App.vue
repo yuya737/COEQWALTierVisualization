@@ -17,15 +17,19 @@ const handleObjectivesSelect = (objectives) => {
 </script>
 
 <template>
-  <div class="w-full h-screen flex flex-row">
-    <div class="h-full flex-[7] bg-white shadow">
+  <div class="w-full h-screen flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+    <!-- Main visualization - full width on mobile, 7/9 on desktop -->
+    <div class="min-h-screen md:min-h-0 md:h-full flex-1 md:flex-[7] bg-white shadow">
       <AnimatedTierTreemap
         class="h-full"
         @polygon-select="handlePolygonSelect"
         @objectives-select="handleObjectivesSelect"
       />
     </div>
-    <div class="h-full flex-[2] bg-white shadow p-5 flex flex-col gap-4">
+    <!-- Map - full width on mobile, 2/9 on desktop -->
+    <div
+      class="min-h-screen md:min-h-0 md:h-full flex-1 md:flex-[2] bg-white shadow p-3 md:p-5 flex flex-col gap-4"
+    >
       <div class="flex-1 min-h-0" data-tour="map">
         <MapView :polygons="selectedPolygons" />
       </div>

@@ -160,12 +160,12 @@
     <!-- Main content area with sidebar and visualizations -->
     <div class="flex-1 flex flex-col gap-3 overflow-hidden">
       <div
-        class="flex gap-3 overflow-hidden"
+        class="flex flex-col md:flex-row gap-3 overflow-hidden"
         :style="{ height: showCategoryChart ? '60%' : '100%' }"
       >
         <!-- Selected Objectives Sidebar -->
         <div
-          class="w-64 flex flex-col bg-gray-50 border border-gray-200 rounded-md p-3 gap-3 overflow-hidden"
+          class="w-full md:w-64 h-48 md:h-auto flex flex-col bg-gray-50 border border-gray-200 rounded-md p-3 gap-3 overflow-hidden"
           data-tour="selected-nodes"
         >
           <!-- Search Bar -->
@@ -387,13 +387,20 @@ const colors = {
   redColor: "#F87171",
 };
 
-const tierColorMap = {
-  "Tier 1": [74, 200, 167], // Muted green
-  "Tier 2": [120, 165, 250], // Muted blue
-  "Tier 3": [253, 212, 103], // Muted yellow
-  "Tier 4": [244, 126, 126], // Muted red
-};
+// const tierColorMap = {
+//   "Tier 1": [74, 200, 167], // Muted green
+//   "Tier 2": [120, 165, 250], // Muted blue
+//   "Tier 3": [253, 212, 103], // Muted yellow
+//   "Tier 4": [244, 126, 126], // Muted red
+// };
 
+const tierColorMap = {
+  "Tier 1": "#1ca367", // Muted green
+  "Tier 2": "#31b2c5", // Muted blue
+  "Tier 3": "#f2944f", // Muted yellow
+  "Tier 4": "#ee5d32", // Muted red
+};
+const tierColors = Object.values(tierColorMap);
 // Category color scale
 const categoryColorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
@@ -613,26 +620,6 @@ const drawPolygonsForCategoryTier = (categoryName, tierName) => {
     });
   }
 };
-
-const drawAllPolygons = () => {
-  // Collect all features from all GeoJSONs
-  const allPolygons = Object.values(geoJSONs)
-    .flatMap((fc) => fc.features)
-    .map((feature) => ({
-      ...feature,
-      properties: {
-        ...feature.properties,
-        fillColor: tierColorMap[feature.properties?.tier] ?? [180, 180, 180, 0],
-      },
-    }));
-
-  // Clear objective selection since category no longer matters
-  selectedObjectives.value = [];
-  emit("objectives-select", []);
-
-  emit("polygon-select", allPolygons);
-};
-
 const updateMapFromSelection = (objectives) => {
   if (!objectives || objectives.length === 0) {
     selectedObjectives.value = [];
@@ -966,8 +953,6 @@ const drawTierBackgrounds = (width, height) => {
   const gridHeight = height - margin.top - margin.bottom;
   const cellHeight = gridHeight / tiers.length;
 
-  const tierColors = ["#ECFDF5", "#EFF6FF", "#FEFCE8", "#FEF2F2"];
-
   // Calculate category widths for positioning
   const categoryLayouts = calculateCategoryWidths(
     objectives.value,
@@ -1003,7 +988,7 @@ const drawTierBackgrounds = (width, height) => {
     .attr("fill", (d) => tierColors[d.tierIndex])
     .attr("stroke", "#D1D5DB")
     .attr("stroke-width", 0.5)
-    .attr("opacity", viewMode.value === "tier" ? 1 : 0)
+    .style("opacity", viewMode.value === "tier" ? 0.2 : 0)
     .style("cursor", "pointer")
     .on("click", function (_event, d) {
       drawPolygonsForCategoryTier(d.category, d.tier);
@@ -1281,7 +1266,7 @@ const drawLegends = (width, height) => {
         .attr("y", yPos)
         .attr("width", colorBoxSize)
         .attr("height", colorBoxSize)
-        .attr("fill", `rgb(${tierColor[0]}, ${tierColor[1]}, ${tierColor[2]})`)
+        .attr("fill", tierColor ? tierColor : colors.defaultBlue)
         .attr("stroke", "#999")
         .attr("stroke-width", 1);
 
@@ -1387,10 +1372,11 @@ const animateTransition = (shouldAnimate = true) => {
 
       // In normal mode, use tier colors
       const tierColor = tierColorMap[d.tier];
-      if (tierColor) {
-        return `rgb(${tierColor[0]}, ${tierColor[1]}, ${tierColor[2]})`;
-      }
-      return colors.defaultBlue;
+      // if (tierColor) {
+      //   return `rgb(${tierColor[0]}, ${tierColor[1]}, ${tierColor[2]})`;
+      // }
+      return tierColor ? tierColor : colors.defaultBlue;
+      // return colors.defaultBlue;
     }
 
     // Default mode - use default blue (or comparison colors if in comparison mode)

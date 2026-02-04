@@ -83,7 +83,14 @@ const getLayers = () => {
         data: props.polygons as any, // Can be single or multiple polygons
         filled: true,
         stroked: true,
-        getFillColor: (f) => f.properties.fillColor || [60, 165, 250, 100], // Semi-transparent blue
+        getFillColor: (f) => {
+          return f.properties.fillColor
+            ? f.properties.fillColor
+                .match(/[0-9a-f]{2}/g)
+                .map((x) => parseInt(x, 16))
+            : [0, 0, 0];
+        },
+
         getLineColor: [60, 60, 60, 255], // Solid blue outline
         getPointColor: [250, 165, 60, 255],
         getPointRadius: 10000,
