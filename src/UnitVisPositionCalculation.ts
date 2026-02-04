@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 
-const margin = { top: 60, right: 50, bottom: 150, left: 100 };
+const margin = { top: 60, right: 50, bottom: 150, left: 60 };
 
 const MAX_DOT_SIZE = 16;
 const MIN_DOT_SIZE = 4;
@@ -190,13 +190,18 @@ export const calculateTierPositions = (
       const spacing = size * 1.2;
       // Calculate max columns that fit: need cols * spacing + size/2 <= cellWidth
       // Rearranging: cols <= (cellWidth - size/2) / spacing
-      const maxCols = Math.floor((cellWidth - CELL_PADDING - size / 2) / spacing);
+      const maxCols = Math.floor(
+        (cellWidth - CELL_PADDING - size / 2) / spacing,
+      );
       const cols = Math.max(1, maxCols);
       const rows = Math.ceil(count / cols);
       // Actual height needed: rows * spacing + size / 2 (matching contentHeight calculation)
       const requiredHeight = rows * spacing + size / 2;
       const requiredWidth = cols * spacing + size / 2;
-      if (requiredHeight <= cellHeight - CELL_PADDING && requiredWidth <= cellWidth - CELL_PADDING) {
+      if (
+        requiredHeight <= cellHeight - CELL_PADDING &&
+        requiredWidth <= cellWidth - CELL_PADDING
+      ) {
         return size;
       }
     }
@@ -280,7 +285,8 @@ export const calculateTierPositions = (
 
           // Calculate global position
           const globalX = margin.left + cellStartX + x_rel - dotSize / 2;
-          const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
+          const globalY =
+            margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
 
           positions.push({
             id: obj.locationId,
@@ -373,7 +379,8 @@ export const calculateTierPositions = (
 
           // Calculate global position
           const globalX = margin.left + cellStartX + x_rel - dotSize / 2;
-          const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
+          const globalY =
+            margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
 
           positions.push({
             id: obj.locationId,
@@ -398,7 +405,8 @@ export const calculateTierPositions = (
 
           // Calculate global position
           const globalX = margin.left + cellStartX + x_rel - dotSize / 2;
-          const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
+          const globalY =
+            margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
 
           positions.push({
             id: `baseline-${obj.id}`,

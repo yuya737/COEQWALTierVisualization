@@ -378,7 +378,7 @@ const showSearchResults = ref(false);
 const searchIndex = computed(() => createSearchIndex(objectives.value));
 
 const tiers = ["Tier 1", "Tier 2", "Tier 3", "Tier 4"];
-const margin = { top: 60, right: 50, bottom: 150, left: 100 };
+const margin = { top: 60, right: 50, bottom: 150, left: 60 };
 
 const colors = {
   grayColor: "#D1D5DB",
