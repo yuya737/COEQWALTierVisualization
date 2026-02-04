@@ -1438,6 +1438,12 @@ const animateTransition = (shouldAnimate = true) => {
   // Select all shapes including those in nested containers
   const shapes = svg.selectAll(".animated-shape").data(allData, (d) => d.id);
 
+  // Log all SVG IDs
+  console.log(
+    "All SVG IDs being drawn:",
+    allData.map((d) => d.id),
+  );
+
   // Enter
   const enterShapes = shapes
     .enter()

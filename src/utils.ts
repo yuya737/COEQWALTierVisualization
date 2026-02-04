@@ -255,12 +255,13 @@ export const fetchDataFromTierMap = async (
         const unmetDemandPercent = 0.1 + pseudoRandom2 * 0.7;
         const unmetDemand = Math.floor(waterVolume * unmetDemandPercent);
 
+        const uniqueId = `${tier.name}-${feature.properties.location_id}`;
         allObjectives.push({
           id: globalId,
           category: tier.name,
           tier: tierName,
           tierLevel: tierLevel,
-          locationId: feature.properties.location_id,
+          locationId: uniqueId,
           locationName: feature.properties.location_name,
           waterVolume: waterVolume,
           unmetDemand: unmetDemand,
