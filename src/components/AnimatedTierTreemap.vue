@@ -13,7 +13,7 @@
       <!-- Controls -->
       <div class="flex gap-2 items-center flex-wrap">
         <!-- Scenario Selection -->
-        <div class="flex gap-1.5 items-center">
+        <div class="flex gap-1.5 items-center" data-tour="scenario-selector">
           <label class="text-xs font-semibold text-gray-700">
             {{ showComparison ? "Sce. 1:" : "Scenario:" }}
           </label>
@@ -33,6 +33,7 @@
 
         <!-- Comparison Toggle -->
         <button
+          data-tour="compare-button"
           @click="toggleComparison"
           :disabled="viewMode !== 'tier'"
           class="px-2 py-1 border rounded text-xs font-semibold transition-colors flex items-center gap-1"
@@ -96,7 +97,7 @@
         <div class="h-4 w-px bg-gray-300"></div>
 
         <!-- View Mode -->
-        <div class="flex gap-1.5 items-center">
+        <div class="flex gap-1.5 items-center" data-tour="view-mode">
           <label class="text-xs font-semibold text-gray-700">View:</label>
           <label class="flex items-center gap-1 cursor-pointer">
             <input
@@ -124,7 +125,7 @@
         <div class="h-4 w-px bg-gray-300"></div>
 
         <!-- Color Mode -->
-        <div class="flex gap-1.5 items-center">
+        <div class="flex gap-1.5 items-center" data-tour="color-mode">
           <label class="text-xs font-semibold text-gray-700">Color:</label>
           <select
             v-model="colorMode"
@@ -165,9 +166,10 @@
         <!-- Selected Objectives Sidebar -->
         <div
           class="w-64 flex flex-col bg-gray-50 border border-gray-200 rounded-md p-3 gap-3 overflow-hidden"
+          data-tour="selected-nodes"
         >
           <!-- Search Bar -->
-          <div class="relative">
+          <div class="relative" data-tour="search-bar">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
@@ -284,7 +286,7 @@
         </div>
 
         <!-- SVG Visualization -->
-        <div class="flex-1 overflow-auto relative">
+        <div class="flex-1 overflow-auto relative" data-tour="visualization">
           <svg ref="svgRef"></svg>
         </div>
       </div>

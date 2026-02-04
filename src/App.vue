@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import AnimatedTierTreemap from "./components/AnimatedTierTreemap.vue";
 import MapView from "./components/MapView.vue";
+import UIOnboarding from "./components/UIOnboarding.vue";
 
 const selectedPolygons = ref([]);
 const selectedObjectives = ref([]);
@@ -25,9 +26,10 @@ const handleObjectivesSelect = (objectives) => {
       />
     </div>
     <div class="h-full flex-[2] bg-white shadow p-5 flex flex-col gap-4">
-      <div class="flex-1 min-h-0">
+      <div class="flex-1 min-h-0" data-tour="map">
         <MapView :polygons="selectedPolygons" />
       </div>
     </div>
+    <UIOnboarding />
   </div>
 </template>
