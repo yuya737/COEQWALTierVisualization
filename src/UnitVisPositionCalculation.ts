@@ -126,6 +126,8 @@ interface Objective {
   waterVolume: number;
   unmetDemand: number;
   withinCategoryIndex: number;
+  locationId: string;
+  locationName: string;
 }
 
 interface Position {
@@ -281,7 +283,7 @@ export const calculateTierPositions = (
           const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
 
           positions.push({
-            id: obj.id,
+            id: obj.locationId,
             x: globalX,
             y: globalY,
             width: dotSize,
@@ -374,7 +376,7 @@ export const calculateTierPositions = (
           const globalY = margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
 
           positions.push({
-            id: obj.id,
+            id: obj.locationId,
             x: globalX,
             y: globalY,
             width: dotSize,
@@ -463,7 +465,7 @@ export const calculateTreemapPositions = (
   const positions: Position[] = [];
   root.leaves().forEach((d: any) => {
     positions.push({
-      id: d.data.obj.id,
+      id: d.data.obj.locationId,
       x: d.x0 + margin.left, // Offset by left margin
       y: d.y0 + margin.top, // Offset by top margin
       width: d.x1 - d.x0,
@@ -508,7 +510,7 @@ export const calculateBarPlotPositions = (
     const y = margin.top + plotHeight - barHeight;
 
     positions.push({
-      id: obj.id,
+      id: obj.locationId,
       x: x,
       y: y,
       width: actualBarWidth,

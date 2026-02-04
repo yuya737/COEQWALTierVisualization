@@ -1,12 +1,24 @@
 <template>
   <div class="w-full h-full bg-white p-4 flex flex-col">
-    <h3 class="text-base font-semibold text-gray-800 mb-1">
+    <h3 class="text-base font-semibold text-gray-800 mb-3">
       Comparing {{ currentScenario }} vs. {{ baselineScenario }}
     </h3>
-    <div class="flex-1 w-full">
-      <svg ref="svgRef" class="w-full h-full"></svg>
+    <div class="flex-1 flex gap-4 overflow-hidden">
+      <!-- Chart (left side, takes more space) -->
+      <div class="flex-[3] min-w-0">
+        <svg ref="svgRef" class="w-full h-full"></svg>
+      </div>
+      <!-- Summary (right side) -->
+      <div
+        class="flex-1 bg-gray-50 border border-gray-200 rounded-md p-4 overflow-auto"
+      >
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">Summary</h4>
+        <p
+          class="text-sm text-gray-600 leading-relaxed"
+          v-html="summaryHTML"
+        ></p>
+      </div>
     </div>
-    <p class="text-sm text-gray-600 mb-3 italic" v-html="summaryHTML"></p>
   </div>
 </template>
 
@@ -39,7 +51,7 @@ const props = defineProps({
 
 const svgRef = ref(null);
 
-const margin = { top: 30, right: 30, bottom: 150, left: 80 };
+const margin = { top: 30, right: 30, bottom: 70, left: 200 };
 
 // Calculate statistics per category
 const categoryStats = computed(() => {
@@ -269,74 +281,64 @@ const drawChart = () => {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Scales
-  const xScale = d3
+  // Scales - horizontal diverging bars
+  const yScale = d3
     .scaleBand()
     .domain(categoryStats.value.map((d) => d.category))
-    .range([0, chartWidth])
+    .range([0, chartHeight])
     .padding(0.3);
 
-  const yScale = d3.scaleLinear().domain([-100, 100]).range([chartHeight, 0]);
+  const xScale = d3.scaleLinear().domain([-100, 100]).range([0, chartWidth]);
 
   // Axes
-  const xAxis = d3.axisBottom(xScale);
-  const yAxis = d3
-    .axisLeft(yScale)
+  const xAxis = d3
+    .axisBottom(xScale)
     .ticks(10)
     .tickFormat((d) => `${Math.abs(d)}%`);
+  const yAxis = d3.axisLeft(yScale);
 
-  // X-axis (at bottom)
+  // Gridlines (horizontal lines parallel to x-axis from center of each bar)
   g.append("g")
-    .attr("transform", `translate(0,${chartHeight * 1.1})`)
-    .call(xAxis)
-    .selectAll("text")
-    .attr("transform", "rotate(-20)")
-    .style("text-anchor", "end")
-    .style("font-size", "12px");
-
-  // Y-axis
-  g.append("g").call(yAxis).style("font-size", "12px");
-
-  // Zero line
-  g.append("line")
+    .attr("class", "grid")
+    .selectAll("line")
+    .data(categoryStats.value)
+    .enter()
+    .append("line")
     .attr("x1", 0)
     .attr("x2", chartWidth)
-    .attr("y1", yScale(0))
-    .attr("y2", yScale(0))
+    .attr("y1", (d) => yScale(d.category) + yScale.bandwidth() / 2)
+    .attr("y2", (d) => yScale(d.category) + yScale.bandwidth() / 2)
+    .attr("stroke", "#e5e7eb")
+    .attr("stroke-width", 1);
+
+  // X-axis
+  g.append("g")
+    .attr("transform", `translate(0,${chartHeight})`)
+    .call(xAxis)
+    .style("font-size", "11px");
+
+  // Y-axis (categories)
+  g.append("g").call(yAxis).style("font-size", "10px");
+
+  // Zero line (center)
+  g.append("line")
+    .attr("x1", xScale(0))
+    .attr("x2", xScale(0))
+    .attr("y1", 0)
+    .attr("y2", chartHeight)
     .attr("stroke", "#666")
     .attr("stroke-width", 2);
 
-  // Improved bars (blue, upward)
-  g.selectAll(".improved-bar")
-    .data(categoryStats.value)
-    .enter()
-    .append("rect")
-    .attr("class", "improved-bar")
-    .attr("x", (d) => xScale(d.category))
-    .attr("y", (d) => yScale(d.improvedPct))
-    .attr("width", xScale.bandwidth())
-    .attr("height", (d) => yScale(0) - yScale(d.improvedPct))
-    .attr("fill", "#3B82F6")
-    .attr("opacity", 0.8)
-    .on("mouseover", function (event, d) {
-      d3.select(this).attr("opacity", 1);
-      showTooltip(event, d, "improved");
-    })
-    .on("mouseout", function () {
-      d3.select(this).attr("opacity", 0.8);
-      hideTooltip();
-    });
-
-  // Worsened bars (red, downward)
+  // Worsened bars (red, left side)
   g.selectAll(".worsened-bar")
     .data(categoryStats.value)
     .enter()
     .append("rect")
     .attr("class", "worsened-bar")
-    .attr("x", (d) => xScale(d.category))
-    .attr("y", yScale(0))
-    .attr("width", xScale.bandwidth())
-    .attr("height", (d) => yScale(-d.worsenedPct) - yScale(0))
+    .attr("x", (d) => xScale(-d.worsenedPct))
+    .attr("y", (d) => yScale(d.category))
+    .attr("width", (d) => xScale(0) - xScale(-d.worsenedPct))
+    .attr("height", yScale.bandwidth())
     .attr("fill", "#EF4444")
     .attr("opacity", 0.8)
     .on("mouseover", function (event, d) {
@@ -348,41 +350,65 @@ const drawChart = () => {
       hideTooltip();
     });
 
-  // Labels on bars
-  g.selectAll(".improved-label")
-    .data(categoryStats.value.filter((d) => d.improvedPct > 5))
+  // Improved bars (blue, right side)
+  g.selectAll(".improved-bar")
+    .data(categoryStats.value)
     .enter()
-    .append("text")
-    .attr("class", "improved-label")
-    .attr("x", (d) => xScale(d.category) + xScale.bandwidth() / 2)
-    .attr("y", (d) => yScale(d.improvedPct) - 5)
-    .attr("text-anchor", "middle")
-    .attr("fill", "#1E40AF")
-    .attr("font-size", "11px")
-    .attr("font-weight", "600")
-    .text((d) => `${d.improved}`);
+    .append("rect")
+    .attr("class", "improved-bar")
+    .attr("x", xScale(0))
+    .attr("y", (d) => yScale(d.category))
+    .attr("width", (d) => xScale(d.improvedPct) - xScale(0))
+    .attr("height", yScale.bandwidth())
+    .attr("fill", "#3B82F6")
+    .attr("opacity", 0.8)
+    .on("mouseover", function (event, d) {
+      d3.select(this).attr("opacity", 1);
+      showTooltip(event, d, "improved");
+    })
+    .on("mouseout", function () {
+      d3.select(this).attr("opacity", 0.8);
+      hideTooltip();
+    });
 
-  g.selectAll(".worsened-label")
-    .data(categoryStats.value.filter((d) => d.worsenedPct > 5))
-    .enter()
-    .append("text")
-    .attr("class", "worsened-label")
-    .attr("x", (d) => xScale(d.category) + xScale.bandwidth() / 2)
-    .attr("y", (d) => yScale(-d.worsenedPct) + 15)
-    .attr("text-anchor", "middle")
-    .attr("fill", "#991B1B")
-    .attr("font-size", "11px")
-    .attr("font-weight", "600")
-    .text((d) => `${d.worsened}`);
+  // // Labels on bars
+  // // Worsened labels (on left bars)
+  // g.selectAll(".worsened-label")
+  //   .data(categoryStats.value.filter((d) => d.worsenedPct > 5))
+  //   .enter()
+  //   .append("text")
+  //   .attr("class", "worsened-label")
+  //   .attr("x", (d) => xScale(-d.worsenedPct / 2))
+  //   .attr("y", (d) => yScale(d.category) + yScale.bandwidth() / 2)
+  //   .attr("dy", "0.35em")
+  //   .attr("text-anchor", "middle")
+  //   .attr("fill", "white")
+  //   .attr("font-size", "11px")
+  //   .attr("font-weight", "600")
+  //   .text((d) => `${Math.round(d.worsenedPct)}%`);
+
+  // // Improved labels (on right bars)
+  // g.selectAll(".improved-label")
+  //   .data(categoryStats.value.filter((d) => d.improvedPct > 5))
+  //   .enter()
+  //   .append("text")
+  //   .attr("class", "improved-label")
+  //   .attr("x", (d) => xScale(d.improvedPct / 2))
+  //   .attr("y", (d) => yScale(d.category) + yScale.bandwidth() / 2)
+  //   .attr("dy", "0.35em")
+  //   .attr("text-anchor", "middle")
+  //   .attr("fill", "white")
+  //   .attr("font-size", "11px")
+  //   .attr("font-weight", "600")
+  //   .text((d) => `${Math.round(d.improvedPct)}%`);
 
   // Axis labels
   svg
     .append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("x", -height / 2)
-    .attr("y", 20)
+    .attr("x", margin.left + chartWidth / 2)
+    .attr("y", height - margin.bottom / 3)
     .attr("text-anchor", "middle")
-    .style("font-size", "14px")
+    .style("font-size", "12px")
     .style("font-weight", "600")
     .text("Percentage of Outcomes");
 

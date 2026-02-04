@@ -5,12 +5,23 @@
       v-if="hoveredFeature"
       class="absolute bg-white px-3 py-2 rounded shadow-lg text-sm pointer-events-none z-50 border border-gray-300"
       :style="{
-        left: tooltipPosition.x + 'px',
-        top: tooltipPosition.y + 'px',
+        left: tooltipPosition.x + 10 + 'px',
+        top: tooltipPosition.y + 10 + 'px',
       }"
     >
-      <strong>ID:</strong>
-      {{ hoveredFeature.id || hoveredFeature.properties?.id || "N/A" }}
+      <div v-if="hoveredFeature.properties">
+        <div v-if="hoveredFeature.properties.location_name">
+          <strong>Node:</strong>
+          {{ hoveredFeature.properties.location_name }}
+        </div>
+        <div v-if="hoveredFeature.properties.tier_level">
+          <strong>Tier:</strong> Tier {{ hoveredFeature.properties.tier_level }}
+        </div>
+      </div>
+      <div v-else>
+        <strong>ID:</strong>
+        {{ hoveredFeature.id || "N/A" }}
+      </div>
     </div>
   </div>
 </template>
@@ -23,13 +34,13 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import centroid from "@turf/centroid";
 import { featureCollection } from "@turf/helpers";
-import { MapboxOverlay } from '@deck.gl/mapbox';
+import { MapboxOverlay } from "@deck.gl/mapbox";
 
 const mapContainer = ref(null);
 let deck: any = null;
 let map: any = null;
 
-const hoveredFeature = ref(null);
+const hoveredFeature = ref<any>(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
 
 const props = defineProps({
@@ -45,6 +56,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  hoveredPolygon: {
+    type: Object,
+    default: null,
+  },
   viewState: {
     type: Object,
     default: () => ({
@@ -59,7 +74,6 @@ const props = defineProps({
 
 const getLayers = () => {
   const layers: any[] = [];
-  const hoveredFeature = ref(null);
 
   // Add GeoJSON polygon layer if polygons are provided
   if (props.polygons && props.polygons.length > 0) {
@@ -112,12 +126,12 @@ const initDeck = () => {
 
   map.on("load", () => {
     overlay = new MapboxOverlay({
-        layers: []
+      layers: [],
     });
     map.addControl(overlay);
 
     overlay.setProps({
-      layers: getLayers()
+      layers: getLayers(),
     });
 
     // Create canvas for deck.gl
@@ -217,11 +231,11 @@ watch(
 );
 
 watch(props.polygons, () => {
-    if(!overlay) return;
-    
-    overlay.setProps({
-      layers: getLayers()
-    });
+  if (!overlay) return;
+
+  overlay.setProps({
+    layers: getLayers(),
+  });
 });
 
 watch(

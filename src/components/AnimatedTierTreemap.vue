@@ -1,10 +1,8 @@
 <template>
-  <div
-    class="w-full h-full bg-white p-5 relative flex flex-col overflow-hidden"
-  >
-    <div class="flex flex-col gap-3 mb-5 mt-3">
+  <div class="w-full h-full bg-white p-3 relative flex flex-col">
+    <div class="flex items-center justify-between gap-3 mb-2">
       <!-- Title -->
-      <h2 class="font-semibold text-gray-800 m-0 text-lg">
+      <h2 class="font-semibold text-gray-800 m-0 text-base">
         {{
           showComparison
             ? `Comparing ${currentScenario} and ${baselineScenario}`
@@ -13,15 +11,15 @@
       </h2>
 
       <!-- Controls -->
-      <div class="flex gap-4 items-center flex-wrap">
+      <div class="flex gap-2 items-center flex-wrap">
         <!-- Scenario Selection -->
-        <div class="flex gap-2 items-center">
-          <label class="text-sm font-semibold text-gray-700">
-            {{ showComparison ? "Scenario 1:" : "Scenario:" }}
+        <div class="flex gap-1.5 items-center">
+          <label class="text-xs font-semibold text-gray-700">
+            {{ showComparison ? "Sce. 1:" : "Scenario:" }}
           </label>
           <select
             v-model="currentScenario"
-            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+            class="px-2 py-1 border border-gray-300 rounded text-xs cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <option
               v-for="scenario in availableScenarios"
@@ -37,7 +35,7 @@
         <button
           @click="toggleComparison"
           :disabled="viewMode !== 'tier'"
-          class="px-3 py-1.5 border rounded-md text-sm font-semibold transition-colors flex items-center gap-1.5"
+          class="px-2 py-1 border rounded text-xs font-semibold transition-colors flex items-center gap-1"
           :class="
             viewMode !== 'tier'
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300'
@@ -48,7 +46,7 @@
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 stroke-0"
+            class="h-3 w-3 stroke-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -60,15 +58,15 @@
               d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
             />
           </svg>
-          {{ showComparison ? "Comparing" : "Compare?" }}
+          {{ showComparison ? "On" : "Compare" }}
         </button>
 
         <!-- Baseline Scenario Selection (only shown in comparison mode) -->
-        <div v-if="showComparison" class="flex gap-2 items-center">
-          <label class="text-sm font-semibold text-gray-700">Scenario 2:</label>
+        <div v-if="showComparison" class="flex gap-1.5 items-center">
+          <label class="text-xs font-semibold text-gray-700">Sce. 2:</label>
           <select
             v-model="baselineScenario"
-            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+            class="px-2 py-1 border border-gray-300 rounded text-xs cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <option
               v-for="scenario in availableScenarios"
@@ -80,51 +78,65 @@
           </select>
         </div>
 
+        <!-- View Comparison Summary Button (only shown in comparison mode) -->
+        <button
+          v-if="showComparison"
+          @click="toggleComparisonChart"
+          class="px-2 py-1 border rounded text-xs font-semibold transition-colors"
+          :class="
+            showCategoryChart
+              ? 'bg-blue-500 text-white hover:bg-blue-600 border-blue-500'
+              : 'bg-white text-blue-600 hover:bg-blue-50 border-blue-400'
+          "
+        >
+          {{ showCategoryChart ? "Hide" : "Show" }} Summary
+        </button>
+
         <!-- Divider -->
-        <div class="h-6 w-px bg-gray-300"></div>
+        <div class="h-4 w-px bg-gray-300"></div>
 
         <!-- View Mode -->
-        <div class="flex gap-2 items-center">
-          <label class="text-sm font-semibold text-gray-700">View:</label>
-          <label class="flex items-center gap-1.5 cursor-pointer">
+        <div class="flex gap-1.5 items-center">
+          <label class="text-xs font-semibold text-gray-700">View:</label>
+          <label class="flex items-center gap-1 cursor-pointer">
             <input
               type="radio"
               value="tier"
               v-model="viewMode"
               @change="switchView"
-              class="cursor-pointer"
+              class="cursor-pointer w-3 h-3"
             />
-            <span class="text-sm">Tier Grid</span>
+            <span class="text-xs">Grid</span>
           </label>
-          <label class="flex items-center gap-1.5 cursor-pointer">
+          <label class="flex items-center gap-1 cursor-pointer">
             <input
               type="radio"
               value="treemap"
               v-model="viewMode"
               @change="switchView"
-              class="cursor-pointer"
+              class="cursor-pointer w-3 h-3"
             />
-            <span class="text-sm">Treemap</span>
+            <span class="text-xs">Tree</span>
           </label>
         </div>
 
         <!-- Divider -->
-        <div class="h-6 w-px bg-gray-300"></div>
+        <div class="h-4 w-px bg-gray-300"></div>
 
-        <!-- Filters -->
-        <div class="flex gap-2 items-center">
-          <label class="text-sm font-semibold text-gray-700">Color:</label>
+        <!-- Color Mode -->
+        <div class="flex gap-1.5 items-center">
+          <label class="text-xs font-semibold text-gray-700">Color:</label>
           <select
             v-model="colorMode"
-            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+            class="px-2 py-1 border border-gray-300 rounded text-xs cursor-pointer bg-white text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <option value="default">Default</option>
             <option value="tier">Tier</option>
             <option value="category">Category</option>
-            <option value="waterVolume">Water Volume</option>
+            <option value="waterVolume">Water Vol.</option>
           </select>
         </div>
-
+        <!-- 
         <div class="flex gap-2 items-center">
           <label class="text-sm font-semibold text-gray-700">Filter:</label>
           <select
@@ -140,90 +152,155 @@
               {{ category }}
             </option>
           </select>
-        </div>
-
-        <!-- Category Comparison Chart Button -->
-        <button
-          @click="showCategoryChart = !showCategoryChart"
-          :disabled="viewMode !== 'tier' || !showComparison"
-          class="px-4 py-1.5 border border-gray-300 rounded-md text-sm font-semibold transition-colors"
-          :class="
-            viewMode !== 'tier' || !showComparison
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
-          "
-        >
-          View Comparison Summary
-        </button>
+        </div> -->
       </div>
     </div>
 
-    <!-- Main content area with sidebar and SVG -->
-    <div class="flex-1 flex gap-3 overflow-hidden">
-      <!-- Selected Objectives Sidebar -->
+    <!-- Main content area with sidebar and visualizations -->
+    <div class="flex-1 flex flex-col gap-3 overflow-hidden">
       <div
-        class="w-64 flex flex-col bg-gray-50 border border-gray-200 rounded-md p-3 overflow-hidden"
+        class="flex gap-3 overflow-hidden"
+        :style="{ height: showCategoryChart ? '60%' : '100%' }"
       >
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold text-gray-700">Selected Outcomes</h3>
-          <button
-            v-if="selectedObjectives.length > 0"
-            @click="clearAllSelected"
-            class="px-2 py-0.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-md border border-red-300"
-          >
-            Clear All
-          </button>
-        </div>
-
+        <!-- Selected Objectives Sidebar -->
         <div
-          v-if="selectedObjectives.length === 0"
-          class="flex-1 flex items-center justify-center text-gray-400 text-sm text-center"
+          class="w-64 flex flex-col bg-gray-50 border border-gray-200 rounded-md p-3 gap-3 overflow-hidden"
         >
-          Click on tier boxes to select them, or a Tier-Category square to
-          select all
-        </div>
-
-        <div v-else class="flex-1 overflow-auto flex flex-col gap-1.5">
-          <div
-            v-for="obj in selectedObjectives"
-            :key="obj.id"
-            class="flex items-center gap-2 bg-white border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50"
-          >
-            <div class="flex-1 min-w-0 flex items-center gap-1.5">
-              <span class="font-semibold text-gray-900">{{ obj.id }}</span>
-              <span class="text-gray-400">|</span>
-              <span class="text-gray-500 truncate">{{ obj.category }}</span>
-              <span class="text-gray-400 text-[10px]">{{ obj.tier }}</span>
-            </div>
+          <!-- Search Bar -->
+          <div class="relative">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              v-model="searchBarVal"
+              @keyup="searchObjectives"
+              @focus="showSearchResults = searchBarVal.length > 0"
+              placeholder="Search for Nodes..."
+              class="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
             <button
-              @click="removeSelectedObjective(obj.id)"
-              class="shrink-0 text-gray-400 hover:text-red-600 font-bold leading-none"
+              v-if="searchBarVal"
+              @click="clearSearch"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-lg leading-none"
             >
               ×
             </button>
+
+            <!-- Search Results Dropdown -->
+            <div
+              v-if="showSearchResults && searchResults.length > 0"
+              class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto"
+            >
+              <div class="p-1.5 bg-gray-50 border-b border-gray-200">
+                <span class="text-xs font-semibold text-gray-700">
+                  {{ searchResults.length }} result{{
+                    searchResults.length !== 1 ? "s" : ""
+                  }}
+                </span>
+              </div>
+              <div class="divide-y divide-gray-100">
+                <button
+                  v-for="result in searchResults.slice(0, 30)"
+                  :key="result.id"
+                  @click="selectSearchResult(result)"
+                  class="w-full px-2 py-2 hover:bg-blue-50 transition-colors flex flex-col gap-0.5 text-left"
+                >
+                  <span class="text-xs font-semibold text-gray-800">{{
+                    result.locationName
+                  }}</span>
+                  <div class="flex items-center gap-1.5 text-xs text-gray-600">
+                    <span class="text-xs">{{ result.category }}</span>
+                    <span>·</span>
+                    <span class="font-medium">{{ result.tier }}</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- No Results Message -->
+            <div
+              v-if="
+                showSearchResults && searchBarVal && searchResults.length === 0
+              "
+              class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-2 text-center text-xs text-gray-500"
+            >
+              No results found
+            </div>
           </div>
+
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-700">Selected Nodes</h3>
+            <button
+              v-if="selectedObjectives.length > 0"
+              @click="clearAllSelected"
+              class="px-2 py-0.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-md border border-red-300"
+            >
+              Clear All
+            </button>
+          </div>
+
+          <div
+            v-if="selectedObjectives.length === 0"
+            class="flex-1 flex items-center justify-center text-gray-400 text-sm text-center"
+          >
+            Click nodes to select them, or click a category label or
+            tier-category cell to select all
+          </div>
+
+          <div v-else class="flex-1 overflow-auto flex flex-col gap-1.5">
+            <div
+              v-for="obj in selectedObjectives"
+              :key="obj.id"
+              class="flex items-center gap-2 bg-white border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50"
+            >
+              <div class="flex-1 min-w-0 flex items-center gap-1.5">
+                <span class="font-semibold text-gray-900">{{
+                  obj.locationName
+                }}</span>
+                <span class="text-gray-400">|</span>
+                <span class="text-gray-500 truncate">{{ obj.category }}</span>
+                <span class="text-gray-400 text-[10px]">{{ obj.tier }}</span>
+              </div>
+              <button
+                @click="removeSelectedObjective(obj.id)"
+                class="shrink-0 text-gray-400 hover:text-red-600 font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SVG Visualization -->
+        <div class="flex-1 overflow-auto relative">
+          <svg ref="svgRef"></svg>
         </div>
       </div>
 
-      <!-- SVG Visualization -->
-      <div class="flex-1 overflow-auto">
-        <svg ref="svgRef"></svg>
-      </div>
-    </div>
-
-    <!-- Category Comparison Chart Modal -->
-    <div
-      v-if="showCategoryChart"
-      @click.self="showCategoryChart = false"
-      class="absolute inset-0 bg-opacity-50 flex items-center justify-center z-50 p-10"
-    >
+      <!-- Category Comparison Chart (shown below tier grid) -->
       <div
-        class="bg-white rounded-lg shadow-xl max-w-4xl w-full overflow-hidden relative"
-        style="height: 500px"
+        v-if="showCategoryChart"
+        class="bg-red-500 border border-gray-200 rounded-md shadow-sm overflow-hidden relative flex-1"
       >
+        <!-- <div class="text-white p-4">
+          CHART IS VISIBLE: {{ showCategoryChart }}
+        </div> -->
         <button
-          @click="showCategoryChart = false"
-          class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold z-10"
+          @click="toggleComparisonChart"
+          class="absolute top-2 right-2 z-10 text-gray-400 hover:text-gray-600 text-xl font-bold leading-none px-2 py-1 hover:bg-gray-100 rounded"
+          title="Hide comparison chart"
         >
           ×
         </button>
@@ -236,20 +313,28 @@
         />
       </div>
     </div>
+
+    <!-- Tooltip -->
+    <div
+      ref="tooltipRef"
+      class="absolute pointer-events-none bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg opacity-0 transition-opacity duration-200 z-50"
+      style="max-width: 250px"
+    >
+      <div ref="tooltipContent"></div>
+    </div>
   </div>
 </template>
 
 <script setup lang="js">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed, nextTick } from "vue";
 import * as d3 from "d3";
 import {
-  fetchData,
   fetchAvailableScenarios,
   fetchShortCodes,
-  fetchGeoShapes,
+  fetchDataFromTierMap,
+  createSearchIndex,
+  searchObjectives as searchUtil,
 } from "../utils";
-import GW_STOR from "../GW_STOR";
-import RES_STOR from "../RES_STOR";
 import CategoryComparisonChart from "./CategoryComparisonChart.vue";
 
 import {
@@ -266,7 +351,9 @@ const emit = defineEmits([
 ]);
 
 const svgRef = ref(null);
-const currentScenario = ref("s0011");
+const tooltipRef = ref(null);
+const tooltipContent = ref(null);
+const currentScenario = ref("s0020");
 const baselineScenario = ref("s0020");
 const availableScenarios = ref([]);
 const viewMode = ref("tier");
@@ -275,12 +362,18 @@ const colorMode = ref("default"); // "default", "tier", "category", or "waterVol
 const selectedObjectives = ref([]);
 const categoryFilter = ref("all"); // "all" or specific category name
 const showCategoryChart = ref(false);
-let objectives = [];
+const objectives = ref([]);
 let categories = [];
 let svg = null;
 let tierShortList = [];
 let geoJSONs = {};
 let cellLayouts = new Map();
+
+// Search functionality
+const searchBarVal = ref("");
+const searchResults = ref([]);
+const showSearchResults = ref(false);
+const searchIndex = computed(() => createSearchIndex(objectives.value));
 
 const tiers = ["Tier 1", "Tier 2", "Tier 3", "Tier 4"];
 const margin = { top: 60, right: 50, bottom: 150, left: 100 };
@@ -347,7 +440,7 @@ const updateSelectedObjectivesTiers = () => {
 
   // Update each selected objective with the new tier from the current objectives data
   const updatedObjectives = selectedObjectives.value.map((selected) => {
-    const updated = objectives.find((obj) => obj.id === selected.id);
+    const updated = objectives.value.find((obj) => obj.id === selected.id);
     return updated || selected; // Keep the old one if not found
   });
 
@@ -387,44 +480,44 @@ const updateSelectedObjectivesTiers = () => {
   emit("objectives-select", updatedObjectives);
 };
 
-// Function to trigger polygon drawing in MapView
-const drawPolygonsOnMap = (objective) => {
-  if (!objective) {
-    emit("polygon-select", []);
-    return;
-  }
-  const short_code = tierShortList.find(
-    (tier) => tier.name === objective.category,
-  )?.short_code;
-  if (!short_code || !geoJSONs[short_code]) {
-    console.warn("No geoshapes found for category:", objective.category);
-    return;
-  }
-  const withinCategoryIndex = objective.withinCategoryIndex;
-  console.log(
-    "Drawing polygon for objective:",
-    objective,
-    short_code,
-    withinCategoryIndex,
-  );
-  const polygonswithoutColor =
-    geoJSONs[short_code]["features"][
-      withinCategoryIndex % geoJSONs[short_code]["features"].length
-    ];
+// // Function to trigger polygon drawing in MapView
+// const drawPolygonsOnMap = (objective) => {
+//   if (!objective) {
+//     emit("polygon-select", []);
+//     return;
+//   }
+//   const short_code = tierShortList.find(
+//     (tier) => tier.name === objective.category,
+//   )?.short_code;
+//   if (!short_code || !geoJSONs[short_code]) {
+//     console.warn("No geoshapes found for category:", objective.category);
+//     return;
+//   }
+//   const withinCategoryIndex = objective.withinCategoryIndex;
+//   console.log(
+//     "Drawing polygon for objective:",
+//     objective,
+//     short_code,
+//     withinCategoryIndex,
+//   );
+//   const polygonswithoutColor =
+//     geoJSONs[short_code]["features"][
+//       withinCategoryIndex % geoJSONs[short_code]["features"].length
+//     ];
 
-  let polygonsWithColor = null;
-  const initFillColor = tierColorMap[objective.tier];
-  polygonsWithColor = {
-    ...polygonswithoutColor,
-    properties: {
-      ...polygonswithoutColor.properties,
-      fillColor: initFillColor,
-      id: objective.id,
-    },
-  };
+//   let polygonsWithColor = null;
+//   const initFillColor = tierColorMap[objective.tier];
+//   polygonsWithColor = {
+//     ...polygonswithoutColor,
+//     properties: {
+//       ...polygonswithoutColor.properties,
+//       fillColor: initFillColor,
+//       id: objective.id,
+//     },
+//   };
 
-  emit("polygon-select", [polygonsWithColor]);
-};
+//   emit("polygon-select", [polygonsWithColor]);
+// };
 
 // Function to show all polygons for a category
 const drawAllPolygonsForCategory = (categoryName) => {
@@ -444,7 +537,7 @@ const drawAllPolygonsForCategory = (categoryName) => {
     return;
   }
 
-  const categoryObjectives = objectives.filter(
+  const categoryObjectives = objectives.value.filter(
     (obj) => obj.category === categoryName,
   );
   selectedObjectives.value = categoryObjectives;
@@ -483,7 +576,7 @@ const drawPolygonsForCategoryTier = (categoryName, tierName) => {
   }
 
   // Filter objectives for this specific category and tier
-  const categoryTierObjectives = objectives.filter(
+  const categoryTierObjectives = objectives.value.filter(
     (obj) => obj.category === categoryName && obj.tier === tierName,
   );
 
@@ -567,8 +660,61 @@ const updateMapFromSelection = (objectives) => {
 
 defineExpose({ updateMapFromSelection });
 
+// Search functions
+const searchObjectives = () => {
+  if (
+    !objectives.value ||
+    objectives.value.length === 0 ||
+    !searchIndex.value
+  ) {
+    return;
+  }
+
+  const input = searchBarVal.value.trim();
+
+  if (!input) {
+    searchResults.value = [];
+    showSearchResults.value = false;
+    return;
+  }
+
+  const matches = searchUtil(searchIndex.value, input);
+  searchResults.value = matches;
+  showSearchResults.value = true;
+};
+
+const selectSearchResult = (objective) => {
+  selectedObjectives.value = [objective];
+  showSearchResults.value = false;
+  searchBarVal.value =
+    objective.locationName || objective.locationId || `Node ${objective.id}`;
+
+  // Highlight the selected node
+  if (svg) {
+    svg.selectAll(".animated-shape").classed("highlighted", false);
+    svg
+      .selectAll(".animated-shape")
+      .filter((d) => d.obj.id === objective.id)
+      .classed("highlighted", true);
+  }
+};
+
+const clearSearch = () => {
+  searchBarVal.value = "";
+  searchResults.value = [];
+  showSearchResults.value = false;
+};
+
 const switchView = () => {
   console.log("Switched view mode to:", viewMode.value);
+
+  // Set color mode based on view mode
+  if (viewMode.value === "treemap") {
+    colorMode.value = "category";
+  } else if (viewMode.value === "tier") {
+    colorMode.value = "default";
+  }
+
   // Disable comparison mode when switching away from tier mode
   if (viewMode.value !== "tier" && showComparison.value) {
     showComparison.value = false;
@@ -578,9 +724,20 @@ const switchView = () => {
   }
 };
 
-const toggleComparison = () => {
+const toggleComparisonChart = async () => {
+  showCategoryChart.value = !showCategoryChart.value;
+
+  // Wait for DOM to update before reinitializing
+  await nextTick();
+  initializeVisualization(false);
+};
+
+const toggleComparison = async () => {
   showComparison.value = !showComparison.value;
-  // Reinitialize without animation for comparison mode
+  showCategoryChart.value = showComparison.value;
+
+  // Wait for DOM to update before reinitializing
+  await nextTick();
   initializeVisualization(false);
 };
 
@@ -606,7 +763,7 @@ const drawLabelsAndGrid = (width, height) => {
   // Draw y-axis for barplot mode
   if (viewMode.value === "barplot") {
     const plotHeight = height - margin.top - margin.bottom;
-    const maxUnmetDemand = d3.max(objectives, (d) => d.unmetDemand);
+    const maxUnmetDemand = d3.max(objectives.value, (d) => d.unmetDemand);
 
     // Create y-scale
     const yScale = d3
@@ -651,7 +808,7 @@ const drawLabelsAndGrid = (width, height) => {
 
   // Calculate variable category widths
   const categoryLayouts = calculateCategoryWidths(
-    objectives,
+    objectives.value,
     categories,
     gridWidth,
   );
@@ -811,7 +968,7 @@ const drawTierBackgrounds = (width, height) => {
 
   // Calculate category widths for positioning
   const categoryLayouts = calculateCategoryWidths(
-    objectives,
+    objectives.value,
     categories,
     gridWidth,
   );
@@ -881,7 +1038,6 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX + 15)
       .attr("y", legendY + 5)
-      .style("font-size", "1.1rem")
       .text("Improved");
 
     // Square (no change)
@@ -898,7 +1054,6 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX + legendSpacing + 15)
       .attr("y", legendY + 5)
-      .style("font-size", "1.1rem")
       .text("No Change");
 
     // Down triangle (worsened)
@@ -919,7 +1074,6 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX + legendSpacing * 2 + 15)
       .attr("y", legendY + 5)
-      .style("font-size", "1.1rem")
       .text("Worsened");
 
     // Gray dotted box (baseline)
@@ -939,13 +1093,12 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX + legendSpacing * 3 + 15)
       .attr("y", legendY + 5)
-      .style("font-size", "1.1rem")
       .text("Baseline");
   }
 
   // Water volume legend (when water volume color mode is active)
   if (colorMode.value === "waterVolume") {
-    const waterVolumeExtent = d3.extent(objectives, (d) => d.waterVolume);
+    const waterVolumeExtent = d3.extent(objectives.value, (d) => d.waterVolume);
     const colorScale = d3
       .scaleSequential((t) => d3.interpolateBlues(t * 0.7 + 0.2))
       .domain(waterVolumeExtent);
@@ -1013,7 +1166,6 @@ const drawLegends = (width, height) => {
       .attr("x", legendX + gradientWidth)
       .attr("y", legendY + gradientHeight + 15)
       .attr("text-anchor", "end")
-      .style("font-size", "0.8rem")
       .text(`${Math.round(waterVolumeExtent[1])} TAF`);
   }
 
@@ -1027,14 +1179,12 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX)
       .attr("y", legendY)
-      .style("font-size", "1rem")
-      .style("font-weight", "600")
       .text("Box Size = Water Volume (Currently Random)");
   }
 
   // Bar plot legend (when in barplot mode and not in water volume color mode)
   if (viewMode.value === "barplot" && colorMode.value !== "waterVolume") {
-    const unmetDemandExtent = d3.extent(objectives, (d) => d.unmetDemand);
+    const unmetDemandExtent = d3.extent(objectives.value, (d) => d.unmetDemand);
 
     const legendX = margin.left;
     const legendY = height - margin.bottom + 60;
@@ -1044,8 +1194,6 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX)
       .attr("y", legendY)
-      .style("font-size", "1rem")
-      .style("font-weight", "600")
       .text(
         "Bar Height = Unmet Demand or similar metric that determines the amount of water required to meet some equity definition (Currently Random)",
       );
@@ -1092,7 +1240,6 @@ const drawLegends = (width, height) => {
         .attr("x", currentX + colorBoxSize + 5)
         .attr("y", yPos + colorBoxSize / 2)
         .attr("alignment-baseline", "middle")
-        .style("font-size", "0.75rem")
         .text(category);
 
       // Calculate width of this item for next position
@@ -1143,7 +1290,6 @@ const drawLegends = (width, height) => {
         .attr("x", currentX + colorBoxSize + 5)
         .attr("y", yPos + colorBoxSize / 2)
         .attr("alignment-baseline", "middle")
-        .style("font-size", "0.75rem")
         .text(tier);
 
       // Calculate width of this item for next position
@@ -1154,7 +1300,7 @@ const drawLegends = (width, height) => {
 };
 
 const animateTransition = (shouldAnimate = true) => {
-  if (!svg || objectives.length === 0) return;
+  if (!svg || objectives.value.length === 0) return;
 
   const container = svgRef.value?.parentElement;
   const containerRect = container?.getBoundingClientRect();
@@ -1172,7 +1318,7 @@ const animateTransition = (shouldAnimate = true) => {
 
   const { positions: tierPositions, cellLayouts: newCellLayouts } =
     calculateTierPositions(
-      objectives,
+      objectives.value,
       categories,
       tiers,
       width,
@@ -1188,15 +1334,23 @@ const animateTransition = (shouldAnimate = true) => {
   drawLegends(width, height);
 
   console.log("Calculated tier positions:", tierPositions);
-  const treemapPositions = calculateTreemapPositions(objectives, width, height);
-  const barPlotPositions = calculateBarPlotPositions(objectives, width, height);
+  const treemapPositions = calculateTreemapPositions(
+    objectives.value,
+    width,
+    height,
+  );
+  const barPlotPositions = calculateBarPlotPositions(
+    objectives.value,
+    width,
+    height,
+  );
 
   const tierPosMap = new Map(tierPositions.map((p) => [p.id, p]));
   const treemapPosMap = new Map(treemapPositions.map((p) => [p.id, p]));
   const barPlotPosMap = new Map(barPlotPositions.map((p) => [p.id, p]));
 
   // Color scale
-  const waterVolumeExtent = d3.extent(objectives, (d) => d.waterVolume);
+  const waterVolumeExtent = d3.extent(objectives.value, (d) => d.waterVolume);
   const colorScale = d3
     .scaleSequential((t) => d3.interpolateBlues(t * 0.7 + 0.2))
     .domain(waterVolumeExtent);
@@ -1301,6 +1455,7 @@ const animateTransition = (shouldAnimate = true) => {
     .enter()
     .append("path")
     .attr("class", "animated-shape")
+    .attr("id", (d) => d.id)
     .attr("stroke", "#fff")
     .attr("stroke-width", 1)
     .style("cursor", "pointer")
@@ -1493,6 +1648,51 @@ const animateTransition = (shouldAnimate = true) => {
       if (!isSelected) {
         highlightShape(this, d);
       }
+
+      // Show tooltip
+      if (tooltipRef.value && tooltipContent.value) {
+        const obj = d.obj;
+        let tooltipHTML = `
+          <div class="font-semibold mb-1">${obj.locationName}</div>
+          <div class="text-gray-300 text-xs">${obj.category}</div>
+          <div class="mt-1 pt-1 border-t border-gray-700">
+            <div class="flex justify-between gap-2">
+              <span class="text-gray-400">Tier:</span>
+              <span class="font-semibold">${obj.tier}</span>
+            </div>`;
+
+        if (showComparison.value && obj.baselineTier) {
+          tooltipHTML += `
+            <div class="flex justify-between gap-2">
+              <span class="text-gray-400">Scenario 2 Tier:</span>
+              <span class="font-semibold">${obj.baselineTier}</span>
+            </div>`;
+        }
+
+        if (obj.locationName) {
+          tooltipHTML += `
+            <div class="flex justify-between gap-2 mt-1">
+              <span class="text-gray-400">LocationID:</span>
+              <span class="font-semibold">${obj.locationId}</span>
+            </div>`;
+        }
+
+        tooltipHTML += `</div>`;
+
+        tooltipContent.value.innerHTML = tooltipHTML;
+
+        const tooltip = tooltipRef.value;
+        tooltip.style.opacity = "1";
+        tooltip.style.left = `${event.pageX + 10}px`;
+        tooltip.style.top = `${event.pageY + 10}px`;
+      }
+    })
+    .on("mousemove", function (event) {
+      // Update tooltip position as mouse moves
+      if (tooltipRef.value) {
+        tooltipRef.value.style.left = `${event.pageX + 10}px`;
+        tooltipRef.value.style.top = `${event.pageY + 10}px`;
+      }
     })
     .on("mouseout", function (event, d) {
       // Only restore if not selected
@@ -1503,6 +1703,11 @@ const animateTransition = (shouldAnimate = true) => {
 
       if (!isSelected) {
         restoreShape(this, d);
+      }
+
+      // Hide tooltip
+      if (tooltipRef.value) {
+        tooltipRef.value.style.opacity = "0";
       }
     });
 
@@ -1658,18 +1863,24 @@ const animateTransition = (shouldAnimate = true) => {
 };
 
 const initializeVisualization = (shouldAnimate = true) => {
-  if (!svgRef.value || objectives.length === 0) return;
+  if (!svgRef.value || objectives.value.length === 0) return;
 
   const container = svgRef.value?.parentElement;
   const containerRect = container?.getBoundingClientRect();
   const width = containerRect?.width || 800;
   const height = containerRect?.height || 600;
+  console.log("Initializing visualization with size:", width, height);
 
   if (!svg) {
     svg = d3.select(svgRef.value);
   }
 
-  svg.attr("width", width).attr("height", height);
+  // Use 100% width/height to prevent container growth
+  svg
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("preserveAspectRatio", "xMidYMid meet");
 
   drawTierBackgrounds(width, height);
   drawLabelsAndGrid(width, height);
@@ -1677,14 +1888,25 @@ const initializeVisualization = (shouldAnimate = true) => {
 };
 
 const loadData = async () => {
-  const baselineResult = await fetchData(baselineScenario.value, tiers);
-  const comparisonResult = await fetchData(currentScenario.value, tiers);
+  const baselineResult = await fetchDataFromTierMap(
+    baselineScenario.value,
+    tierShortList,
+    tiers,
+  );
+  const comparisonResult = await fetchDataFromTierMap(
+    currentScenario.value,
+    tierShortList,
+    tiers,
+  );
 
   const baselineData = baselineResult.data;
   const comparisonData = comparisonResult.data;
   categories = baselineResult.categories;
 
-  objectives = baselineData.map((obj) => {
+  // Update geoJSONs from baseline result
+  geoJSONs = baselineResult.geoJSONs;
+
+  objectives.value = baselineData.map((obj) => {
     const comparisonObj = comparisonData.find((c) => c.id === obj.id);
     return {
       ...obj,
@@ -1693,8 +1915,8 @@ const loadData = async () => {
     };
   });
 
-  emit("objectives-init", objectives);
-  console.log("Loaded objectives:", objectives);
+  emit("objectives-init", objectives.value);
+  console.log("Loaded objectives:", objectives.value);
 
   initializeVisualization();
 };
@@ -1703,35 +1925,14 @@ onMounted(async () => {
   const scenarios = await fetchAvailableScenarios();
   availableScenarios.value = scenarios;
 
-  // Fetch tier short codes for geoshapes
+  // Fetch tier short codes (category metadata)
   const scenarioList = await fetchShortCodes();
   tierShortList = scenarioList.map((scenario) => ({
     short_code: scenario.short_code,
     name: scenario.name,
   }));
 
-  // Fetch geoshapes for each tier
-  for (const tier of tierShortList) {
-    console.log(
-      "Fetching geoshapes for tier:",
-      tier.short_code,
-      "Type:",
-      typeof tier.short_code,
-    );
-    if (tier.short_code === "GW_STOR") {
-      console.log("SSDF - Using local GW_STOR data");
-      const geoShapes = GW_STOR;
-      geoJSONs[tier.short_code] = geoShapes;
-    } else if (tier.short_code === "RES_STOR") {
-      const geoShapes = RES_STOR;
-      geoJSONs[tier.short_code] = geoShapes;
-    } else {
-      const geoShapes = await fetchGeoShapes(tier.short_code);
-      geoJSONs[tier.short_code] = geoShapes;
-    }
-  }
-  console.log("Loaded geoshapes:", geoJSONs);
-
+  // Load data - the new API will fetch both tier data and geoshapes together
   await loadData();
 });
 
@@ -1758,6 +1959,9 @@ watch(categoryFilter, () => {
   animateTransition(true);
 });
 
+// Removed showCategoryChart watcher - the tier grid container height changes
+// are handled by CSS flex layout, no need to reinitialize
+
 watch(
   selectedObjectives,
   () => {
@@ -1778,11 +1982,17 @@ watch(
           return null;
         }
 
-        const withinCategoryIndex = objective.withinCategoryIndex;
-        const polygonWithoutColor =
-          geoJSONs[short_code]["features"][
-            withinCategoryIndex % geoJSONs[short_code]["features"].length
-          ];
+        // Find the geometry by matching locationId
+        const polygonWithoutColor = geoJSONs[short_code]["features"].find(
+          (feature) => feature.properties.location_id === objective.locationId,
+        );
+
+        if (!polygonWithoutColor) {
+          console.warn(
+            `No geometry found for locationId: ${objective.locationId}`,
+          );
+          return null;
+        }
 
         const fillColor = tierColorMap[objective.tier];
         return {
@@ -1814,5 +2024,10 @@ svg {
 svg :deep(.animated-shape.highlighted) {
   stroke: #333 !important;
   stroke-width: 2 !important;
+}
+
+/* Legend item styling */
+svg :deep(.legend-item) {
+  font-size: 12px;
 }
 </style>

@@ -1,3 +1,8 @@
+// Import local GeoJSON files
+import GW_STOR from "./GW_STOR.js";
+import RES_STOR from "./RES_STOR.js";
+import Fuse from "fuse.js";
+
 // Use CORS proxy (temporary solution for GitHub Pages deployment)
 const USE_CORS_PROXY = false; // Set to false when running locally or when API supports CORS
 
@@ -111,14 +116,37 @@ export const fetchShortCodes = async () => {
   }
 };
 
-export const fetchGeoShapes = async (short_code: string) => {
+export const fetchGeoShapes = async (
+  scenarioID: string,
+  short_code: string,
+) => {
   try {
-    const response = await fetch(`${API_ROOT}/tier-map/s0020/${short_code}`);
+    const response = await fetch(
+      `${API_ROOT}/tier-map/${scenarioID}/${short_code}`,
+    );
     const data = await response.json();
     return data;
   } catch (error) {
     console.error(
-      `Error fetching geoshapes for scenario ${short_code}:`,
+      `Error fetching geoshapes for scenario ${scenarioID}, category ${short_code}:`,
+      error,
+    );
+  }
+};
+
+export const fetchTierLocations = async (
+  scenarioID: string,
+  short_code: string,
+) => {
+  try {
+    const response = await fetch(
+      `${API_ROOT}/tier-map/${scenarioID}/${short_code}/locations`,
+    );
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(
+      `Error fetching tier locations for scenario ${scenarioID}, category ${short_code}:`,
       error,
     );
   }
@@ -128,9 +156,152 @@ export const fetchAvailableScenarios = async () => {
   try {
     const response = await fetch(`${API_ROOT}/tier-map/scenarios`);
     const data = await response.json();
-    return data.scenarios;
+
+    const ret = data.scenarios.filter(
+      (scenario: any) =>
+        scenario.scenario_code == "s0020" || scenario.scenario_code == "s0021",
+    );
+    return ret;
   } catch (error) {
     console.error("Error fetching available scenarios:", error);
     return [];
   }
+};
+
+export const fetchDataFromTierMap = async (
+  scenarioID: string,
+  tierShortList: any[],
+  tiers: string[],
+) => {
+  const geoJSONs: any = {};
+  const allObjectives: any[] = [];
+  const categories: string[] = [];
+  let globalId = 0;
+
+  // Map of local GeoJSON files
+  const localGeoJSONMap: any = {
+    GW_STOR: GW_STOR,
+    RES_STOR: RES_STOR,
+  };
+
+  for (const tier of tierShortList) {
+    try {
+      let geoJSONData;
+
+      // Check if we should use local GeoJSON
+      if (localGeoJSONMap[tier.short_code]) {
+        geoJSONData = localGeoJSONMap[tier.short_code];
+
+        // Fetch tier levels from the locations endpoint
+        const locationsData = await fetchTierLocations(
+          scenarioID,
+          tier.short_code,
+        );
+
+        if (locationsData && locationsData.locations) {
+          // Create a map of location_id -> tier_level from API response
+          const tierLevelMap = new Map();
+          locationsData.locations.forEach((location: any) => {
+            tierLevelMap.set(location.location_id, location.tier_level);
+          });
+
+          // Update local GeoJSON with API tier levels
+          geoJSONData = {
+            ...geoJSONData,
+            features: geoJSONData.features.map((feature: any) => {
+              const apiTierLevel = tierLevelMap.get(
+                feature.properties.location_id,
+              );
+              return {
+                ...feature,
+                properties: {
+                  ...feature.properties,
+                  tier_level:
+                    apiTierLevel !== undefined
+                      ? apiTierLevel
+                      : feature.properties.tier_level,
+                },
+              };
+            }),
+          };
+        }
+      } else {
+        // Fetch from API as usual
+        geoJSONData = await fetchGeoShapes(scenarioID, tier.short_code);
+      }
+
+      if (!geoJSONData || !geoJSONData.features) {
+        console.warn(`No data for ${tier.short_code}, skipping...`);
+        continue;
+      }
+
+      geoJSONs[tier.short_code] = geoJSONData;
+      categories.push(tier.name);
+
+      // Extract objectives from features
+      geoJSONData.features.forEach((feature: any, index: number) => {
+        const tierLevel = feature.properties.tier_level;
+        const tierName = tiers[tierLevel - 1]; // Convert tier_level (1-4) to tier name
+
+        // Generate mock data
+        const seed = globalId * 9301 + 49297;
+        const pseudoRandom = (seed % 233280) / 233280;
+        const exponentialRandom = Math.pow(pseudoRandom, 3);
+        const waterVolume =
+          Math.floor(exponentialRandom * (5000 - 10 + 1)) + 10;
+
+        const seed2 = globalId * 7919 + 31337;
+        const pseudoRandom2 = (seed2 % 233280) / 233280;
+        const unmetDemandPercent = 0.1 + pseudoRandom2 * 0.7;
+        const unmetDemand = Math.floor(waterVolume * unmetDemandPercent);
+
+        allObjectives.push({
+          id: globalId,
+          category: tier.name,
+          tier: tierName,
+          tierLevel: tierLevel,
+          locationId: feature.properties.location_id,
+          locationName: feature.properties.location_name,
+          waterVolume: waterVolume,
+          unmetDemand: unmetDemand,
+        });
+
+        globalId++;
+      });
+    } catch (error) {
+      console.error(`Error fetching data for ${tier.short_code}:`, error);
+      continue;
+    }
+  }
+
+  return { data: allObjectives, categories, geoJSONs };
+};
+
+// Fuse.js search configuration and function
+export const createSearchIndex = (objectives: any[]) => {
+  if (!objectives || objectives.length === 0) {
+    return null;
+  }
+
+  return new Fuse(objectives, {
+    keys: [
+      { name: "locationName", weight: 2 }, // Prioritize location name
+      { name: "locationId", weight: 1.5 },
+    ],
+    threshold: 0.3, // 0 = exact match, 1 = match anything
+    ignoreLocation: true, // Don't care where in the string the match is
+    minMatchCharLength: 1,
+  });
+};
+
+export const searchObjectives = (
+  searchIndex: Fuse<any> | null,
+  query: string,
+) => {
+  if (!searchIndex || !query.trim()) {
+    return [];
+  }
+
+  const results = searchIndex.search(query.trim());
+  return results.map((result) => result.item);
 };
