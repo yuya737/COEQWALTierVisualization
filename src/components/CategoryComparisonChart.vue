@@ -424,7 +424,7 @@ const drawChart = () => {
     .attr("text-anchor", "middle")
     .style("font-size", "12px")
     .style("font-weight", "600")
-    .text("Percentage of Outcomes");
+    .text("Percentage of Nodes");
 
   // Legend
   const legend = svg
