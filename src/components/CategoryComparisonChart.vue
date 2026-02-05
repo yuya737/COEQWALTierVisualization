@@ -110,9 +110,9 @@ const summaryHTML = computed(() => {
     const { improved, worsened, unchangedPct } = stat;
 
     // Thresholds for classification
-    const DOMINANT_THRESHOLD = 70;
-    const MAJORITY_THRESHOLD = 50;
-    const MINORITY_THRESHOLD = 30;
+    const DOMINANT_THRESHOLD = 50;
+    const MAJORITY_THRESHOLD = 40;
+    const MINORITY_THRESHOLD = 20;
 
     if (unchangedPct == 100) {
       return "unaffected";
@@ -123,10 +123,10 @@ const summaryHTML = computed(() => {
 
     const getPrefix = (percentInDirection) => {
       if (percentInDirection > DOMINANT_THRESHOLD) {
-        return "";
+        return "strong ";
       }
       if (percentInDirection > MAJORITY_THRESHOLD) {
-        return "mostly ";
+        return "";
       }
       if (percentInDirection > MINORITY_THRESHOLD) {
         return "some ";
@@ -144,19 +144,19 @@ const summaryHTML = computed(() => {
 
     // Has both - classify as mixed
     if (stat.improvedPct > DOMINANT_THRESHOLD) {
-      return "positive";
-    }
-
-    if (stat.worsenedPct > DOMINANT_THRESHOLD) {
-      return "negative";
-    }
-
-    if (stat.improvedPct > MAJORITY_THRESHOLD) {
       return "mostly positive";
     }
 
-    if (stat.worsenedPct > MAJORITY_THRESHOLD) {
+    if (stat.worsenedPct > DOMINANT_THRESHOLD) {
       return "mostly negative";
+    }
+
+    if (stat.improvedPct > MAJORITY_THRESHOLD) {
+      return "mixed-positive";
+    }
+
+    if (stat.worsenedPct > MAJORITY_THRESHOLD) {
+      return "mixed-negative";
     }
 
     if (stat.improvedPct > stat.worsenedPct) {
@@ -171,19 +171,28 @@ const summaryHTML = computed(() => {
   };
 
   const getDirectionColor = (direction) => {
-    if (direction === "positive" || direction === "mostly positive") {
-      return "#3B82F6"; // Blue
+    // All positive directions - blue
+    if (direction.includes("positive") && !direction.includes("mixed")) {
+      return "#2563EB"; // Blue
     }
-    if (direction === "negative" || direction === "mostly negative") {
-      return "#EF4444"; // Red
+
+    // All negative directions - red
+    if (direction.includes("negative") && !direction.includes("mixed")) {
+      return "#DC2626"; // Red
     }
-    if (direction === "mixed-positive" || direction === "slight positive") {
-      return "#60A5FA"; // Light blue
+
+    // Mixed positive - purple
+    if (direction === "mixed-positive" || direction === "mostly positive") {
+      return "#7C3AED"; // Purple
     }
-    if (direction === "mixed-negative" || direction === "slight negative") {
-      return "#F87171"; // Light red
+
+    // Mixed negative - orange
+    if (direction === "mixed-negative" || direction === "mostly negative") {
+      return "#F97316"; // Orange
     }
-    return "#6B7280"; // Gray for neutral/unaffected
+
+    // Neutral or unaffected - gray
+    return "#6B7280"; // Gray
   };
 
   const formatCategoryGroup = (stats, directionText) => {
@@ -198,6 +207,7 @@ const summaryHTML = computed(() => {
     ...stat,
     direction: getDirection(stat),
   }));
+  console.log("categorizedStats:", categorizedStats);
 
   // Group categories by direction
   const directionGroups = new Map();
@@ -209,12 +219,16 @@ const summaryHTML = computed(() => {
   });
   const parts = [];
   const directionOrder = [
+    "strong positive",
     "positive",
     "mostly positive",
+    "some positive",
     "slight positive",
     "mixed-positive",
+    "strong negative",
     "negative",
     "mostly negative",
+    "some negative",
     "slight negative",
     "mixed-negative",
     "mixed-neutral",
