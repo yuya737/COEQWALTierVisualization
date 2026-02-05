@@ -103,7 +103,7 @@ const startTour = () => {
     prevLabel: "Back",
     doneLabel: "Done",
     scrollToElement: true,
-    scrollPadding: 30,
+    // scrollPadding: 30,
   });
 
   // Add custom highlighting for SVG shapes and tier backgrounds
@@ -160,18 +160,38 @@ onMounted(() => {
   max-width: 400px;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    Cantarell, sans-serif;
+    Cantarell, "Helvetica Neue", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  color: #1f2937;
+}
+
+.introjs-tooltiptext {
+  font-weight: 400;
+}
+
+/* Hide the tooltip header since we don't have titles */
+.introjs-tooltip-header {
+  display: none;
+}
+
+.introjs-tooltip-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #111827;
 }
 
 .introjs-button {
   text-shadow: none;
-  font-size: 13px;
-  padding: 8px 16px;
+  font-size: 14px;
+  padding: 10px 18px;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    Cantarell, sans-serif;
-  border-radius: 6px;
+    Cantarell, "Helvetica Neue", sans-serif;
+  border-radius: 8px;
   font-weight: 600;
+  letter-spacing: 0.02em;
   transition: all 0.2s ease;
   cursor: pointer;
 }
