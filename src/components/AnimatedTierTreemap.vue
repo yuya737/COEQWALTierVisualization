@@ -1978,7 +1978,9 @@ watch(
 
         // Find the geometry by matching locationId
         const polygonWithoutColor = geoJSONs[short_code]["features"].find(
-          (feature) => feature.properties.location_id === objective.locationId,
+          (feature) =>
+            `${geoJSONs[short_code].metadata.tier_name}-${feature.properties.location_id}` ===
+            `${objective.locationId}`,
         );
 
         if (!polygonWithoutColor) {
