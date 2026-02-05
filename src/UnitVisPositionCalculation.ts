@@ -262,6 +262,11 @@ export const calculateTierPositions = (
           return;
         }
 
+        // Sort by water volume (descending) so larger volumes appear first
+        const sortedCellObjectives = [...cellObjectives].sort(
+          (a, b) => b.waterVolume - a.waterVolume,
+        );
+
         const cellWidth = categoryWidths.get(category) || 0;
         const cellStartX = categoryStartX.get(category) || 0;
 
@@ -276,7 +281,7 @@ export const calculateTierPositions = (
 
         let maxRow = -1;
 
-        cellObjectives.forEach((obj, idx) => {
+        sortedCellObjectives.forEach((obj, idx) => {
           const row = Math.floor(idx / dotsPerRow);
           const col = idx % dotsPerRow;
 
@@ -338,7 +343,7 @@ export const calculateTierPositions = (
         let currentObjectives = categoryObjectives.filter(
           (obj) => obj.tier === tier,
         );
-        const movedAwayObjectives = categoryObjectives.filter(
+        let movedAwayObjectives = categoryObjectives.filter(
           (obj) => obj.baselineTier === tier && obj.tier !== tier,
         );
         // Use simple grid without centering offsets to restore visibility
@@ -354,7 +359,12 @@ export const calculateTierPositions = (
           const bChange =
             bTierNum < bBaselineNum ? -1 : bTierNum === bBaselineNum ? 0 : 1;
 
-          return aChange - bChange;
+          // Primary sort by tier change direction
+          if (aChange !== bChange) {
+            return aChange - bChange;
+          }
+          // Secondary sort by water volume (descending)
+          return b.waterVolume - a.waterVolume;
         });
 
         let dotIndex = 0;
@@ -395,6 +405,9 @@ export const calculateTierPositions = (
           dotIndex++;
           maxRow = Math.max(maxRow, row);
         });
+
+        // Sort moved away objectives by water volume (descending)
+        movedAwayObjectives.sort((a, b) => b.waterVolume - a.waterVolume);
 
         movedAwayObjectives.forEach((obj) => {
           const row = Math.floor(dotIndex / dotsPerRow);
