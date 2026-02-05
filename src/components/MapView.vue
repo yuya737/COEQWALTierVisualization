@@ -114,36 +114,40 @@ const getLayers = () => {
       }),
     );
 
-    // Add text labels for each polygon at the first vertex
-    layers.push(
-      new TextLayer({
-        id: "text-layer",
-        data: props.polygons as any,
-        getPosition: (f: any) => {
-          // Get first coordinate of the geometry
-          if (f.geometry.type === "Polygon") {
-            return f.geometry.coordinates[0][0];
-          } else if (f.geometry.type === "MultiPolygon") {
-            return f.geometry.coordinates[0][0][0];
-          } else if (f.geometry.type === "Point") {
-            return f.geometry.coordinates;
-          }
-          return [0, 0];
-        },
-        getText: (f: any) => f.properties.location_name || "",
-        getSize: 12,
-        getColor: [0, 0, 0, 255],
-        getAngle: 0,
-        getTextAnchor: "middle",
-        getAlignmentBaseline: "center",
-        fontFamily: "Arial, sans-serif",
-        fontWeight: "bold",
-        pickable: false,
-        background: true,
-        getBackgroundColor: [255, 255, 255, 200],
-        backgroundPadding: [2, 2],
-      }),
+    // Add text labels for polygons only (not points) at the first vertex
+    const polygonsOnly = props.polygons.filter(
+      (f: any) => f.geometry.type !== "Point"
     );
+
+    if (polygonsOnly.length > 0) {
+      layers.push(
+        new TextLayer({
+          id: "text-layer",
+          data: polygonsOnly as any,
+          getPosition: (f: any) => {
+            // Get first coordinate of the geometry
+            if (f.geometry.type === "Polygon") {
+              return f.geometry.coordinates[0][0];
+            } else if (f.geometry.type === "MultiPolygon") {
+              return f.geometry.coordinates[0][0][0];
+            }
+            return [0, 0];
+          },
+          getText: (f: any) => f.properties.location_name || "",
+          getSize: 12,
+          getColor: [0, 0, 0, 255],
+          getAngle: 0,
+          getTextAnchor: "middle",
+          getAlignmentBaseline: "center",
+          fontFamily: "Arial, sans-serif",
+          fontWeight: "bold",
+          pickable: false,
+          background: true,
+          getBackgroundColor: [255, 255, 255, 200],
+          backgroundPadding: [2, 2],
+        }),
+      );
+    }
   }
 
   return layers;
