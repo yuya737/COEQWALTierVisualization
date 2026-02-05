@@ -406,7 +406,9 @@ const categoryColorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
 // Functions to manage selected objectives
 const removeSelectedObjective = (locationId) => {
-  const index = selectedObjectives.value.findIndex((obj) => obj.locationId === locationId);
+  const index = selectedObjectives.value.findIndex(
+    (obj) => obj.locationId === locationId,
+  );
   if (index !== -1) {
     selectedObjectives.value.splice(index, 1);
 
@@ -427,7 +429,9 @@ const removeSelectedObjective = (locationId) => {
       // Remove from current shape if this is a baseline
       svg
         .selectAll(".animated-shape")
-        .filter((d) => d.obj.locationId === locationId && d.shape !== "baseline-rect")
+        .filter(
+          (d) => d.obj.locationId === locationId && d.shape !== "baseline-rect",
+        )
         .classed("highlighted", false);
     }
   }
@@ -449,7 +453,9 @@ const updateSelectedObjectivesTiers = () => {
 
   // Update each selected objective with the new tier from the current objectives data
   const updatedObjectives = selectedObjectives.value.map((selected) => {
-    const updated = objectives.value.find((obj) => obj.locationId === selected.locationId);
+    const updated = objectives.value.find(
+      (obj) => obj.locationId === selected.locationId,
+    );
     return updated || selected; // Keep the old one if not found
   });
 
@@ -1080,7 +1086,7 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX + legendSpacing * 3 + 15)
       .attr("y", legendY + 5)
-      .text("Baseline");
+      .text("Scenario 2");
   }
 
   // Water volume legend (when water volume color mode is active)
@@ -1586,7 +1592,11 @@ const animateTransition = (shouldAnimate = true) => {
       const currentLocationId = d.obj.locationId;
       svg
         .selectAll(".animated-shape")
-        .filter((shapeData) => shapeData.obj.locationId === currentLocationId && shapeData.shape !== "baseline-rect")
+        .filter(
+          (shapeData) =>
+            shapeData.obj.locationId === currentLocationId &&
+            shapeData.shape !== "baseline-rect",
+        )
         .classed("highlighted", true);
     }
   };
@@ -1608,7 +1618,11 @@ const animateTransition = (shouldAnimate = true) => {
       const currentLocationId = d.obj.locationId;
       svg
         .selectAll(".animated-shape")
-        .filter((shapeData) => shapeData.obj.locationId === currentLocationId && shapeData.shape !== "baseline-rect")
+        .filter(
+          (shapeData) =>
+            shapeData.obj.locationId === currentLocationId &&
+            shapeData.shape !== "baseline-rect",
+        )
         .classed("highlighted", false);
     }
   };
@@ -1616,7 +1630,9 @@ const animateTransition = (shouldAnimate = true) => {
   // Click to toggle selection (sticky)
   allShapes.on("click", function (event, d) {
     const locationId = d.obj.locationId;
-    const index = selectedObjectives.value.findIndex((obj) => obj.locationId === locationId);
+    const index = selectedObjectives.value.findIndex(
+      (obj) => obj.locationId === locationId,
+    );
 
     if (index !== -1) {
       // Already selected, remove it
@@ -1901,7 +1917,9 @@ const loadData = async () => {
   geoJSONs = baselineResult.geoJSONs;
 
   objectives.value = baselineData.map((obj) => {
-    const comparisonObj = comparisonData.find((c) => c.locationId === obj.locationId);
+    const comparisonObj = comparisonData.find(
+      (c) => c.locationId === obj.locationId,
+    );
     return {
       ...obj,
       baselineTier: obj.tier,

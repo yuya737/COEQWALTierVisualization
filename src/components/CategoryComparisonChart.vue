@@ -1,7 +1,7 @@
 <template>
   <div class="w-full h-full bg-white p-4 flex flex-col">
     <h3 class="text-base font-semibold text-gray-800 mb-3">
-      Comparing {{ currentScenario }} vs. {{ baselineScenario }}
+      Comparing {{ currentScenario }} from {{ baselineScenario }}
     </h3>
     <div class="flex-1 flex gap-4 overflow-hidden">
       <!-- Chart (left side, takes more space) -->

@@ -157,11 +157,11 @@ export const fetchAvailableScenarios = async () => {
     const response = await fetch(`${API_ROOT}/tier-map/scenarios`);
     const data = await response.json();
 
-    const ret = data.scenarios.filter(
-      (scenario: any) =>
-        scenario.scenario_code == "s0020" || scenario.scenario_code == "s0021",
-    );
-    return ret;
+    // const ret = data.scenarios.filter(
+    //   (scenario: any) =>
+    //     scenario.scenario_code == "s0020" || scenario.scenario_code == "s0021",
+    // );
+    return data.scenarios;
   } catch (error) {
     console.error("Error fetching available scenarios:", error);
     return [];
