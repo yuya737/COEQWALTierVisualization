@@ -264,7 +264,7 @@
           <div v-else class="flex-1 overflow-auto flex flex-col gap-1.5">
             <div
               v-for="obj in selectedObjectives"
-              :key="obj.id"
+              :key="obj.locationId"
               class="flex items-center gap-2 bg-white border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50"
             >
               <div class="flex-1 min-w-0 flex items-center gap-1.5">
@@ -276,7 +276,7 @@
                 <span class="text-gray-400 text-[10px]">{{ obj.tier }}</span>
               </div>
               <button
-                @click="removeSelectedObjective(obj.id)"
+                @click="removeSelectedObjective(obj.locationId)"
                 class="shrink-0 text-gray-400 hover:text-red-600 font-bold leading-none"
               >
                 ×
@@ -405,8 +405,8 @@ const tierColors = Object.values(tierColorMap);
 const categoryColorScale = d3.scaleOrdinal(d3.schemeTableau10);
 
 // Functions to manage selected objectives
-const removeSelectedObjective = (objId) => {
-  const index = selectedObjectives.value.findIndex((obj) => obj.id === objId);
+const removeSelectedObjective = (locationId) => {
+  const index = selectedObjectives.value.findIndex((obj) => obj.locationId === locationId);
   if (index !== -1) {
     selectedObjectives.value.splice(index, 1);
 
@@ -415,19 +415,19 @@ const removeSelectedObjective = (objId) => {
       // Remove from main shape
       svg
         .selectAll(".animated-shape")
-        .filter((d) => d.obj.id === objId)
+        .filter((d) => d.obj.locationId === locationId)
         .classed("highlighted", false);
 
       // Remove from baseline shape if it exists
       svg
         .selectAll(".animated-shape")
-        .filter((d) => d.id === `baseline-${objId}`)
+        .filter((d) => d.id === `baseline-${locationId}`)
         .classed("highlighted", false);
 
       // Remove from current shape if this is a baseline
       svg
         .selectAll(".animated-shape")
-        .filter((d) => d.obj.id === objId && d.shape !== "baseline-rect")
+        .filter((d) => d.obj.locationId === locationId && d.shape !== "baseline-rect")
         .classed("highlighted", false);
     }
   }
@@ -449,7 +449,7 @@ const updateSelectedObjectivesTiers = () => {
 
   // Update each selected objective with the new tier from the current objectives data
   const updatedObjectives = selectedObjectives.value.map((selected) => {
-    const updated = objectives.value.find((obj) => obj.id === selected.id);
+    const updated = objectives.value.find((obj) => obj.locationId === selected.locationId);
     return updated || selected; // Keep the old one if not found
   });
 
@@ -560,7 +560,7 @@ const drawAllPolygonsForCategory = (categoryName) => {
     categoryObjectives.forEach((obj) => {
       svg
         .selectAll(".animated-shape")
-        .filter((d) => d.obj.id === obj.id)
+        .filter((d) => d.obj.locationId === obj.locationId)
         .classed("highlighted", true);
     });
   }
@@ -615,7 +615,7 @@ const drawPolygonsForCategoryTier = (categoryName, tierName) => {
     categoryTierObjectives.forEach((obj) => {
       svg
         .selectAll(".animated-shape")
-        .filter((d) => d.obj.id === obj.id)
+        .filter((d) => d.obj.locationId === obj.locationId)
         .classed("highlighted", true);
     });
   }
@@ -640,7 +640,7 @@ const updateMapFromSelection = (objectives) => {
       objectives.forEach((obj) => {
         svg
           .selectAll(".animated-shape")
-          .filter((d) => d.obj.id === obj.id)
+          .filter((d) => d.obj.locationId === obj.locationId)
           .classed("highlighted", true);
       });
     }
@@ -683,7 +683,7 @@ const selectSearchResult = (objective) => {
     svg.selectAll(".animated-shape").classed("highlighted", false);
     svg
       .selectAll(".animated-shape")
-      .filter((d) => d.obj.id === objective.id)
+      .filter((d) => d.obj.locationId === objective.locationId)
       .classed("highlighted", true);
   }
 };
@@ -1536,9 +1536,9 @@ const animateTransition = (shouldAnimate = true) => {
     })
     .attr("stroke", (d) => {
       // Check if this objective is selected
-      const objId = d.obj.id;
+      const locationId = d.obj.locationId;
       const isSelected = selectedObjectives.value.some(
-        (obj) => obj.id === objId,
+        (obj) => obj.locationId === locationId,
       );
 
       if (isSelected) {
@@ -1553,9 +1553,9 @@ const animateTransition = (shouldAnimate = true) => {
     })
     .attr("stroke-width", (d) => {
       // Check if this objective is selected
-      const objId = d.obj.id;
+      const locationId = d.obj.locationId;
       const isSelected = selectedObjectives.value.some(
-        (obj) => obj.id === objId,
+        (obj) => obj.locationId === locationId,
       );
       return isSelected ? 3 : 1;
     })
@@ -1574,7 +1574,7 @@ const animateTransition = (shouldAnimate = true) => {
 
     // If this shape has moved (triangle-up or triangle-down), also highlight its baseline-rect
     if (d.shape === "triangle-up" || d.shape === "triangle-down") {
-      const baselineId = `baseline-${d.id}`;
+      const baselineId = `baseline-${d.obj.locationId}`;
       svg
         .selectAll(".animated-shape")
         .filter((shapeData) => shapeData.id === baselineId)
@@ -1583,10 +1583,10 @@ const animateTransition = (shouldAnimate = true) => {
 
     // If this is a baseline-rect, highlight the corresponding current shape
     if (d.shape === "baseline-rect") {
-      const currentId = d.id.toString().replace("baseline-", "");
+      const currentLocationId = d.obj.locationId;
       svg
         .selectAll(".animated-shape")
-        .filter((shapeData) => shapeData.id.toString() === currentId)
+        .filter((shapeData) => shapeData.obj.locationId === currentLocationId && shapeData.shape !== "baseline-rect")
         .classed("highlighted", true);
     }
   };
@@ -1597,7 +1597,7 @@ const animateTransition = (shouldAnimate = true) => {
 
     // Restore companion shape if it exists
     if (d.shape === "triangle-up" || d.shape === "triangle-down") {
-      const baselineId = `baseline-${d.id}`;
+      const baselineId = `baseline-${d.obj.locationId}`;
       svg
         .selectAll(".animated-shape")
         .filter((shapeData) => shapeData.id === baselineId)
@@ -1605,18 +1605,18 @@ const animateTransition = (shouldAnimate = true) => {
     }
 
     if (d.shape === "baseline-rect") {
-      const currentId = d.id.toString().replace("baseline-", "");
+      const currentLocationId = d.obj.locationId;
       svg
         .selectAll(".animated-shape")
-        .filter((shapeData) => shapeData.id.toString() === currentId)
+        .filter((shapeData) => shapeData.obj.locationId === currentLocationId && shapeData.shape !== "baseline-rect")
         .classed("highlighted", false);
     }
   };
 
   // Click to toggle selection (sticky)
   allShapes.on("click", function (event, d) {
-    const objId = d.obj.id;
-    const index = selectedObjectives.value.findIndex((obj) => obj.id === objId);
+    const locationId = d.obj.locationId;
+    const index = selectedObjectives.value.findIndex((obj) => obj.locationId === locationId);
 
     if (index !== -1) {
       // Already selected, remove it
@@ -1634,9 +1634,9 @@ const animateTransition = (shouldAnimate = true) => {
   allShapes
     .on("mouseover", function (event, d) {
       // Only preview if not already selected
-      const objId = d.obj.id;
+      const locationId = d.obj.locationId;
       const isSelected = selectedObjectives.value.some(
-        (obj) => obj.id === objId,
+        (obj) => obj.locationId === locationId,
       );
 
       if (!isSelected) {
@@ -1690,9 +1690,9 @@ const animateTransition = (shouldAnimate = true) => {
     })
     .on("mouseout", function (event, d) {
       // Only restore if not selected
-      const objId = d.obj.id;
+      const locationId = d.obj.locationId;
       const isSelected = selectedObjectives.value.some(
-        (obj) => obj.id === objId,
+        (obj) => obj.locationId === locationId,
       );
 
       if (!isSelected) {
@@ -1901,7 +1901,7 @@ const loadData = async () => {
   geoJSONs = baselineResult.geoJSONs;
 
   objectives.value = baselineData.map((obj) => {
-    const comparisonObj = comparisonData.find((c) => c.id === obj.id);
+    const comparisonObj = comparisonData.find((c) => c.locationId === obj.locationId);
     return {
       ...obj,
       baselineTier: obj.tier,

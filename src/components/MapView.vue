@@ -139,6 +139,8 @@ const getLayers = () => {
         fontFamily: "Arial, sans-serif",
         fontWeight: "bold",
         pickable: false,
+        background: true,
+        getBackgroundColor: [255, 255, 255, 200],
         backgroundPadding: [2, 2],
       }),
     );

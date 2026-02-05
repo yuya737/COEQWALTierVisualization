@@ -409,7 +409,7 @@ export const calculateTierPositions = (
             margin.top + tierIndex * cellHeight + y_rel - dotSize / 2;
 
           positions.push({
-            id: `baseline-${obj.id}`,
+            id: `baseline-${obj.locationId}`,
             x: globalX,
             y: globalY,
             width: dotSize,
