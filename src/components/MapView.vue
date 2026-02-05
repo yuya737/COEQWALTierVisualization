@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Deck } from "@deck.gl/core";
-import { ScatterplotLayer, GeoJsonLayer } from "@deck.gl/layers";
+import { TextLayer, GeoJsonLayer } from "@deck.gl/layers";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import centroid from "@turf/centroid";
@@ -42,6 +42,7 @@ let map: any = null;
 
 const hoveredFeature = ref<any>(null);
 const tooltipPosition = ref({ x: 0, y: 0 });
+const currentZoom = ref(10);
 
 const props = defineProps({
   data: {
@@ -93,8 +94,12 @@ const getLayers = () => {
 
         getLineColor: [60, 60, 60, 255], // Solid blue outline
         getPointColor: [250, 165, 60, 255],
-        getPointRadius: 10000,
         getLineWidth: 0.1,
+        getPointRadius: 10000,
+        pointRadiusScale: 1,
+        pointRadiusMinPixels: 2,
+        pointRadiusMaxPixels: 50,
+        pointRadiusUnits: "meters",
         lineWidthMinPixels: 0.1,
         pickable: true,
         opacity: 0.15,
@@ -106,6 +111,35 @@ const getLayers = () => {
             hoveredFeature.value = null;
           }
         },
+      }),
+    );
+
+    // Add text labels for each polygon at the first vertex
+    layers.push(
+      new TextLayer({
+        id: "text-layer",
+        data: props.polygons as any,
+        getPosition: (f: any) => {
+          // Get first coordinate of the geometry
+          if (f.geometry.type === "Polygon") {
+            return f.geometry.coordinates[0][0];
+          } else if (f.geometry.type === "MultiPolygon") {
+            return f.geometry.coordinates[0][0][0];
+          } else if (f.geometry.type === "Point") {
+            return f.geometry.coordinates;
+          }
+          return [0, 0];
+        },
+        getText: (f: any) => f.properties.location_name || "",
+        getSize: 12,
+        getColor: [0, 0, 0, 255],
+        getAngle: 0,
+        getTextAnchor: "middle",
+        getAlignmentBaseline: "center",
+        fontFamily: "Arial, sans-serif",
+        fontWeight: "bold",
+        pickable: false,
+        backgroundPadding: [2, 2],
       }),
     );
   }
