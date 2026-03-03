@@ -453,6 +453,211 @@ export const calculateTierPositions = (
   return { positions, cellLayouts };
 };
 
+export const calculateHorizontalTierPositions = (
+  objectives: Objective[],
+  categories: string[],
+  tiers: string[],
+  width: number,
+  height: number,
+): {
+  positions: Position[];
+  cellLayouts: Map<
+    string,
+    {
+      contentHeight: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
+  >;
+  categoryLayouts: CategoryLayout[];
+} => {
+  const gridWidth = width - margin.left - margin.right;
+  const gridHeight = height - margin.top - margin.bottom;
+
+  // Group objectives by category and tier
+  const grouped = d3.group(
+    objectives,
+    (d) => d.category,
+    (d) => d.tier,
+  );
+
+  // Calculate tier height
+  const tierHeight = gridHeight / tiers.length;
+
+  // Calculate global dot size and actual category widths
+  const categoryPadding = 8;
+  const minHorizontalDotSize = 2; // Smaller minimum for horizontal mode
+  let globalDotSize = MAX_DOT_SIZE;
+
+  // First pass: count total dots in each category
+  // Since xPositionCounter increments across ALL tiers, we need total count
+  const categoryCounts = new Map<string, number>();
+  categories.forEach((category) => {
+    const categoryObjs = grouped.get(category);
+    if (!categoryObjs) {
+      categoryCounts.set(category, 0);
+      return;
+    }
+
+    const totalCount = Array.from(categoryObjs.values()).reduce(
+      (sum, tierObjs) => sum + tierObjs.length,
+      0,
+    );
+    categoryCounts.set(category, totalCount);
+  });
+
+  // Calculate dot size based on fitting all categories in available width
+  // For horizontal mode, we need much smaller dots and tighter spacing
+  console.log("Horizontal layout - gridWidth:", gridWidth);
+  console.log("Horizontal layout - category counts:", categoryCounts);
+
+  for (let size = MAX_DOT_SIZE; size >= minHorizontalDotSize; size -= 0.5) {
+    const spacing = size * 1.1; // Tighter spacing (was 1.2)
+
+    // Calculate total required width for all categories
+    let totalRequiredWidth = 0;
+    categories.forEach((category) => {
+      const count = categoryCounts.get(category) || 0;
+      const categoryWidth = count > 0
+        ? categoryPadding + (count - 1) * spacing + size + categoryPadding
+        : categoryPadding * 2 + size;
+      totalRequiredWidth += categoryWidth;
+    });
+
+    if (totalRequiredWidth <= gridWidth) {
+      globalDotSize = size;
+      console.log("Horizontal layout - found dot size:", globalDotSize, "required width:", totalRequiredWidth);
+      break;
+    }
+  }
+
+  if (globalDotSize < minHorizontalDotSize) globalDotSize = minHorizontalDotSize;
+
+  // Also check if it fits vertically in tier height
+  const maxSizeForHeight = tierHeight - 4;
+  globalDotSize = Math.min(globalDotSize, maxSizeForHeight);
+  if (globalDotSize < minHorizontalDotSize) globalDotSize = minHorizontalDotSize;
+
+  const spacing = globalDotSize * 1.1; // Use same spacing as in calculation
+
+  // Calculate actual category widths and positions based on total dot count
+  const categoryLayouts: CategoryLayout[] = [];
+  let totalWidth = 0;
+
+  categories.forEach((category) => {
+    const count = categoryCounts.get(category) || 0;
+    const actualWidth = count > 0
+      ? categoryPadding + (count - 1) * spacing + globalDotSize + categoryPadding
+      : categoryPadding * 2 + globalDotSize; // Minimum width for empty categories
+
+    categoryLayouts.push({
+      category,
+      width: actualWidth,
+      startX: 0, // Will be recalculated after scaling
+    });
+    totalWidth += actualWidth;
+  });
+
+  // Scale categories to use full width if there's extra space
+  const scaleFactor = totalWidth < gridWidth ? gridWidth / totalWidth : 1;
+  let currentX = 0;
+
+  categoryLayouts.forEach((layout) => {
+    layout.width = layout.width * scaleFactor;
+    layout.startX = currentX;
+    currentX += layout.width;
+  });
+
+  console.log("Horizontal layout - categoryLayouts:", categoryLayouts);
+  console.log("Horizontal layout - final dot size:", globalDotSize);
+  console.log("Horizontal layout - scale factor:", scaleFactor);
+
+  const categoryWidths = new Map(
+    categoryLayouts.map((l) => [l.category, l.width]),
+  );
+  const categoryStartX = new Map(
+    categoryLayouts.map((l) => [l.category, l.startX]),
+  );
+
+  // Scale spacing and padding to match scaled category widths
+  const scaledSpacing = spacing * scaleFactor;
+  const scaledPadding = categoryPadding * scaleFactor;
+
+  const positions: Position[] = [];
+  const cellLayouts = new Map<
+    string,
+    {
+      contentHeight: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
+  >();
+
+  categories.forEach((category) => {
+    const categoryWidth = categoryWidths.get(category) || 0;
+    const categoryX = categoryStartX.get(category) || 0;
+    const categoryObjs = grouped.get(category);
+
+    if (!categoryObjs) return;
+
+    // Track X position across all tiers in this category
+    let xPositionCounter = 0;
+
+    tiers.forEach((tier, tierIndex) => {
+      const tierObjectives = categoryObjs.get(tier) || [];
+
+      // Sort by water volume (descending) within each tier
+      const sortedTierObjs = [...tierObjectives].sort(
+        (a, b) => b.waterVolume - a.waterVolume,
+      );
+
+      const tierY = tierIndex * tierHeight;
+
+      // Position each objective horizontally in this tier
+      sortedTierObjs.forEach((obj) => {
+        // Keep width as calculated dot size, make height 5x taller
+        const rectWidth = globalDotSize;
+        const rectHeight = Math.min(globalDotSize * 5, tierHeight - 8); // 5x taller, but don't exceed tier height
+
+        // Center the rectangle at the calculated X position
+        const centerX = scaledPadding + xPositionCounter * scaledSpacing;
+        const x_rel = centerX + rectWidth / 2;
+        const y_rel = tierHeight / 2; // Center vertically in tier row
+
+        const globalX = margin.left + categoryX + x_rel;
+        const globalY = margin.top + tierY + y_rel;
+
+        positions.push({
+          id: obj.locationId,
+          x: globalX,
+          y: globalY,
+          width: rectWidth,
+          height: rectHeight,
+          obj: obj,
+          shape: "rect",
+        });
+
+        xPositionCounter++; // Increment for each dot in the category
+      });
+
+      // Store cell layout info
+      cellLayouts.set(`${tier}-${category}`, {
+        contentHeight: globalDotSize,
+        x: margin.left + categoryX,
+        y: margin.top + tierY,
+        width: categoryWidth,
+        height: tierHeight,
+      });
+    });
+  });
+
+  return { positions, cellLayouts, categoryLayouts };
+};
+
 export const calculateTreemapPositions = (
   objectives: Objective[],
   width: number,

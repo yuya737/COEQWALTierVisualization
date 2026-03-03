@@ -35,10 +35,10 @@
         <button
           data-tour="compare-button"
           @click="toggleComparison"
-          :disabled="viewMode !== 'tier'"
+          :disabled="viewMode !== 'tier' && viewMode !== 'tier_horizontal'"
           class="px-2 py-1 border rounded text-xs font-semibold transition-colors flex items-center gap-1"
           :class="
-            viewMode !== 'tier'
+            viewMode !== 'tier' && viewMode !== 'tier_horizontal'
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300'
               : showComparison
                 ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer border-blue-500'
@@ -108,6 +108,16 @@
               class="cursor-pointer w-3 h-3"
             />
             <span class="text-xs">Grid</span>
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input
+              type="radio"
+              value="tier_horizontal"
+              v-model="viewMode"
+              @change="switchView"
+              class="cursor-pointer w-3 h-3"
+            />
+            <span class="text-xs">Horiz</span>
           </label>
           <label class="flex items-center gap-1 cursor-pointer">
             <input
@@ -342,6 +352,7 @@ import CategoryComparisonChart from "./CategoryComparisonChart.vue";
 import {
   calculateBarPlotPositions,
   calculateTierPositions,
+  calculateHorizontalTierPositions,
   calculateTreemapPositions,
   calculateCategoryWidths,
 } from "../UnitVisPositionCalculation";
@@ -370,6 +381,7 @@ let svg = null;
 let tierShortList = [];
 let geoJSONs = {};
 let cellLayouts = new Map();
+let horizontalCategoryLayouts = [];
 
 // Search functionality
 const searchBarVal = ref("");
@@ -706,12 +718,19 @@ const switchView = () => {
   // Set color mode based on view mode
   if (viewMode.value === "treemap") {
     colorMode.value = "category";
-  } else if (viewMode.value === "tier") {
+  } else if (
+    viewMode.value === "tier" ||
+    viewMode.value === "tier_horizontal"
+  ) {
     colorMode.value = "default";
   }
 
   // Disable comparison mode when switching away from tier mode
-  if (viewMode.value !== "tier" && showComparison.value) {
+  if (
+    viewMode.value !== "tier" &&
+    viewMode.value !== "tier_horizontal" &&
+    showComparison.value
+  ) {
     showComparison.value = false;
     initializeVisualization(true); // Animate when switching modes
   } else {
@@ -740,6 +759,82 @@ const drawTierCells = (width, height) => {
   // Clean up any existing tier cell groups
   svg.selectAll(".tier-cell-group").remove();
   svg.select("defs").remove();
+};
+
+const drawHorizontalTierGrid = (width, height) => {
+  // Clean up existing grids
+  svg.selectAll(".tier-cell-group").remove();
+  svg.select("defs").remove();
+
+  const gridWidth = width - margin.left - margin.right;
+  const gridHeight = height - margin.top - margin.bottom;
+
+  // Use the globally stored horizontal category layouts
+  const categoryLayouts = horizontalCategoryLayouts;
+
+  // Draw vertical lines between categories
+  categoryLayouts.forEach((layout, i) => {
+    svg
+      .append("line")
+      .attr("class", "grid-line")
+      .attr("x1", margin.left + layout.startX)
+      .attr("y1", margin.top)
+      .attr("x2", margin.left + layout.startX)
+      .attr("y2", margin.top + gridHeight)
+      .attr("stroke", "#D1D5DB")
+      .attr("stroke-width", 1);
+  });
+
+  // Add final vertical line at the end
+  svg
+    .append("line")
+    .attr("class", "grid-line")
+    .attr("x1", margin.left + gridWidth)
+    .attr("y1", margin.top)
+    .attr("x2", margin.left + gridWidth)
+    .attr("y2", margin.top + gridHeight)
+    .attr("stroke", "#D1D5DB")
+    .attr("stroke-width", 1);
+
+  // Calculate tier height
+  const tierHeight = gridHeight / tiers.length;
+
+  // Draw horizontal lines between tiers
+  tiers.forEach((_, i) => {
+    svg
+      .append("line")
+      .attr("class", "grid-line")
+      .attr("x1", margin.left)
+      .attr("y1", margin.top + i * tierHeight)
+      .attr("x2", margin.left + gridWidth)
+      .attr("y2", margin.top + i * tierHeight)
+      .attr("stroke", "#D1D5DB")
+      .attr("stroke-width", 1);
+  });
+
+  // Add final horizontal line
+  svg
+    .append("line")
+    .attr("class", "grid-line")
+    .attr("x1", margin.left)
+    .attr("y1", margin.top + gridHeight)
+    .attr("x2", margin.left + gridWidth)
+    .attr("y2", margin.top + gridHeight)
+    .attr("stroke", "#D1D5DB")
+    .attr("stroke-width", 1);
+
+  // Draw tier labels (left) - keep these for horizontal mode
+  tiers.forEach((tier, i) => {
+    svg
+      .append("text")
+      .attr("class", "tier-label")
+      .attr("x", margin.left - 10)
+      .attr("y", margin.top + i * tierHeight + tierHeight / 2)
+      .attr("text-anchor", "end")
+      .attr("dominant-baseline", "middle")
+      .attr("font-size", "1rem")
+      .text(tier);
+  });
 };
 
 const drawLabelsAndGrid = (width, height) => {
@@ -797,18 +892,21 @@ const drawLabelsAndGrid = (width, height) => {
 
   if (viewMode.value === "tier") {
     drawTierCells(width, height);
+  } else if (viewMode.value === "tier_horizontal") {
+    drawHorizontalTierGrid(width, height);
   } else {
     return;
   }
 
-  // Calculate variable category widths
-  const categoryLayouts = calculateCategoryWidths(
-    objectives.value,
-    categories,
-    gridWidth,
-  );
+  // Calculate category widths based on mode
+  const categoryLayouts =
+    viewMode.value === "tier_horizontal"
+      ? horizontalCategoryLayouts
+      : calculateCategoryWidths(objectives.value, categories, gridWidth);
 
-  // Grid lines - vertical lines at category boundaries
+  // Only draw grid lines for regular tier mode (horizontal mode draws its own)
+  if (viewMode.value === "tier") {
+    // Grid lines - vertical lines at category boundaries
   categoryLayouts.forEach((layout, i) => {
     svg
       .append("line")
@@ -845,21 +943,22 @@ const drawLabelsAndGrid = (width, height) => {
       .attr("stroke-width", 1);
   });
 
-  // Tier labels
-  svg
-    .selectAll(".tier-label")
-    .data(tiers)
-    .enter()
-    .append("text")
-    .attr("class", "tier-label")
-    .attr("x", margin.left - 10)
-    .attr("y", (d, i) => margin.top + i * cellHeight + cellHeight / 2)
-    .attr("text-anchor", "end")
-    .attr("alignment-baseline", "middle")
-    .style("font-size", "1rem")
-    .text((d) => d);
+    // Tier labels
+    svg
+      .selectAll(".tier-label")
+      .data(tiers)
+      .enter()
+      .append("text")
+      .attr("class", "tier-label")
+      .attr("x", margin.left - 10)
+      .attr("y", (d, i) => margin.top + i * cellHeight + cellHeight / 2)
+      .attr("text-anchor", "end")
+      .attr("alignment-baseline", "middle")
+      .style("font-size", "1rem")
+      .text((d) => d);
+  } // End of tier mode grid lines
 
-  // Category labels
+  // Category labels (for both tier and tier_horizontal modes)
   const categoryGroups = svg
     .selectAll(".category-label-group")
     .data(categoryLayouts)
@@ -955,16 +1054,20 @@ const drawLabelsAndGrid = (width, height) => {
 };
 
 const drawTierBackgrounds = (width, height) => {
+  console.log("Drawing tier backgrounds for view mode:", viewMode.value);
   const gridWidth = width - margin.left - margin.right;
   const gridHeight = height - margin.top - margin.bottom;
   const cellHeight = gridHeight / tiers.length;
 
   // Calculate category widths for positioning
-  const categoryLayouts = calculateCategoryWidths(
-    objectives.value,
-    categories,
-    gridWidth,
-  );
+  // Use horizontal layouts if in horizontal mode, otherwise use proportional widths
+  const categoryLayouts =
+    viewMode.value === "tier_horizontal"
+      ? horizontalCategoryLayouts
+      : calculateCategoryWidths(objectives.value, categories, gridWidth);
+
+  console.log("Using categoryLayouts:", categoryLayouts);
+  console.log("horizontalCategoryLayouts global:", horizontalCategoryLayouts);
 
   // Create data for each tier-category cell
   const cellBackgrounds = [];
@@ -985,17 +1088,41 @@ const drawTierBackgrounds = (width, height) => {
   const backgrounds = svg
     .selectAll(".tier-background")
     .data(cellBackgrounds, (d) => `${d.tier}-${d.category}`)
-    .join("rect")
-    .attr("class", "tier-background")
-    .attr("x", (d) => d.x)
-    .attr("y", (d) => d.y)
-    .attr("width", (d) => d.width)
-    .attr("height", (d) => d.height)
-    .attr("fill", (d) => tierColors[d.tierIndex])
-    .attr("stroke", "#D1D5DB")
-    .attr("stroke-width", 0.5)
-    .style("opacity", viewMode.value === "tier" ? 0.2 : 0)
-    .style("cursor", "pointer")
+    .join(
+      (enter) =>
+        enter
+          .append("rect")
+          .attr("class", "tier-background")
+          .attr("x", (d) => d.x)
+          .attr("y", (d) => d.y)
+          .attr("width", (d) => d.width)
+          .attr("height", (d) => d.height)
+          .attr("fill", (d) => tierColors[d.tierIndex])
+          .attr("stroke", "#D1D5DB")
+          .attr("stroke-width", 0.5)
+          .style(
+            "opacity",
+            viewMode.value === "tier" || viewMode.value === "tier_horizontal"
+              ? 0.2
+              : 0,
+          )
+          .style("cursor", "pointer"),
+      (update) =>
+        update
+          .transition()
+          .duration(500)
+          .attr("x", (d) => d.x)
+          .attr("y", (d) => d.y)
+          .attr("width", (d) => d.width)
+          .attr("height", (d) => d.height)
+          .attr("fill", (d) => tierColors[d.tierIndex])
+          .style(
+            "opacity",
+            viewMode.value === "tier" || viewMode.value === "tier_horizontal"
+              ? 0.2
+              : 0,
+          ),
+    )
     .on("click", function (_event, d) {
       drawPolygonsForCategoryTier(d.category, d.tier);
     });
@@ -1009,7 +1136,10 @@ const drawLegends = (width, height) => {
   svg.selectAll(".legend-gradient").remove();
 
   // Comparison mode legend (only in tier mode with comparison)
-  if (viewMode.value === "tier" && showComparison.value) {
+  if (
+    (viewMode.value === "tier" || viewMode.value === "tier_horizontal") &&
+    showComparison.value
+  ) {
     const legendX = margin.left;
     const legendY = margin.top - 25; // Position at top
     const legendItemSize = 18;
@@ -1302,13 +1432,6 @@ const animateTransition = (shouldAnimate = true) => {
 
   const duration = shouldAnimate ? 1500 : 0;
 
-  // Animate tier backgrounds
-  svg
-    .selectAll(".tier-background")
-    .transition()
-    .duration(duration)
-    .attr("opacity", viewMode.value === "tier" ? 1 : 0);
-
   const { positions: tierPositions, cellLayouts: newCellLayouts } =
     calculateTierPositions(
       objectives.value,
@@ -1319,6 +1442,21 @@ const animateTransition = (shouldAnimate = true) => {
       showComparison.value,
     );
   cellLayouts = newCellLayouts; // Update global state
+
+  const {
+    positions: tierHorizontalPositions,
+    categoryLayouts: horizontalCatLayouts,
+  } = calculateHorizontalTierPositions(
+    objectives.value,
+    categories,
+    tiers,
+    width,
+    height,
+  );
+  horizontalCategoryLayouts = horizontalCatLayouts; // Store globally
+
+  // Redraw tier backgrounds with updated dimensions
+  drawTierBackgrounds(width, height);
 
   // Draw/remove labels and grid
   drawLabelsAndGrid(width, height);
@@ -1339,6 +1477,9 @@ const animateTransition = (shouldAnimate = true) => {
   );
 
   const tierPosMap = new Map(tierPositions.map((p) => [p.id, p]));
+  const tierHorizontalPosMap = new Map(
+    tierHorizontalPositions.map((p) => [p.id, p]),
+  );
   const treemapPosMap = new Map(treemapPositions.map((p) => [p.id, p]));
   const barPlotPosMap = new Map(barPlotPositions.map((p) => [p.id, p]));
 
@@ -1437,9 +1578,11 @@ const animateTransition = (shouldAnimate = true) => {
   const allData =
     viewMode.value === "tier"
       ? tierPositions
-      : viewMode.value === "treemap"
-        ? treemapPositions
-        : barPlotPositions;
+      : viewMode.value === "tier_horizontal"
+        ? tierHorizontalPositions
+        : viewMode.value === "treemap"
+          ? treemapPositions
+          : barPlotPositions;
 
   // Select all shapes including those in nested containers
   const shapes = svg.selectAll(".animated-shape").data(allData, (d) => d.id);
@@ -1470,13 +1613,19 @@ const animateTransition = (shouldAnimate = true) => {
   enterShapes.each(function (d) {
     // Start from a different view mode position
     let startPos;
-    if (viewMode.value === "tier") {
+    if (viewMode.value === "tier" || viewMode.value === "tier_horizontal") {
       startPos = treemapPosMap.get(d.id) || barPlotPosMap.get(d.id);
     } else if (viewMode.value === "treemap") {
-      startPos = tierPosMap.get(d.id) || barPlotPosMap.get(d.id);
+      startPos =
+        tierPosMap.get(d.id) ||
+        tierHorizontalPosMap.get(d.id) ||
+        barPlotPosMap.get(d.id);
     } else {
       // barplot
-      startPos = tierPosMap.get(d.id) || treemapPosMap.get(d.id);
+      startPos =
+        tierPosMap.get(d.id) ||
+        tierHorizontalPosMap.get(d.id) ||
+        treemapPosMap.get(d.id);
     }
 
     if (!startPos) return;
@@ -1520,6 +1669,8 @@ const animateTransition = (shouldAnimate = true) => {
       let targetPos;
       if (viewMode.value === "tier") {
         targetPos = tierPosMap.get(d.id);
+      } else if (viewMode.value === "tier_horizontal") {
+        targetPos = tierHorizontalPosMap.get(d.id);
       } else if (viewMode.value === "treemap") {
         targetPos = treemapPosMap.get(d.id);
       } else {
