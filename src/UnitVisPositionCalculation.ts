@@ -630,7 +630,6 @@ export const calculateHorizontalTierPositions = (
 
     if (!categoryObjs) return;
 
-
     tiers.forEach((tier, tierIndex) => {
       const tierObjectives = categoryObjs.get(tier) || [];
 
@@ -666,14 +665,15 @@ export const calculateHorizontalTierPositions = (
       sortedTierObjs.forEach((obj) => {
         // Keep width as calculated dot size, make height 5x taller
         const rectWidth = globalDotSize;
-        const rectHeight = Math.min(globalDotSize * 5, tierHeight - 8); // 5x taller, but don't exceed tier height
+        const rectHeight = Math.min(globalDotSize * 20, tierHeight - 8); // 5x taller, but don't exceed tier height
 
         // Position: leftPadding + (dotIndex * (dotWidth + spacing))
-        const x_rel = edgePadding + xPositionCounter * (globalDotSize + spacing);
+        const x_rel =
+          edgePadding + xPositionCounter * (globalDotSize + spacing);
         const y_rel = tierHeight / 2; // Center vertically in tier row
 
         const globalX = margin.left + categoryX + x_rel;
-        const globalY = margin.top + tierY + y_rel;
+        const globalY = margin.top + tierY + y_rel - rectHeight / 2; // Center the taller rectangle
 
         positions.push({
           id: obj.locationId,
