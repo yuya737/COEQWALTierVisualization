@@ -51,7 +51,7 @@ const startTour = () => {
       {
         element: document.querySelector('[data-tour="view-mode"]'),
         intro:
-          "Switch between Grid view (organized by tiers and outcomes categories) and Tree view (to understand water usage of each node) to see your data in different layouts.",
+          "Switch between Grid view (organized by tiers and outcomes categories) and Tree view (to understand water usage of each location of interest) to see your data in different layouts.",
         position: "bottom",
       },
       {
@@ -63,31 +63,31 @@ const startTour = () => {
       {
         element: document.querySelector('[data-tour="search-bar"]'),
         intro:
-          "Search for specific locations or nodes by name or ID. Click a result to highlight it on the grid/tree and map.",
+          "Search for specific locations of interest by name or ID. Click a result to highlight it on the grid/tree and map.",
         position: "bottom",
       },
       {
         element: document.querySelector(".tier-background"),
         intro:
-          "The grid is organized by tiers and outcomes categories. Each colored background represents a tier level, with locations grouped by their tier classification. You can click on the squares to select all nodes in that square.",
+          "The grid is organized by tiers and outcomes categories. Each colored background represents a tier level, with locations grouped by their tier classification. You can click on the squares to select all locations of interest in that square.",
         position: "right",
       },
       {
         element: document.querySelector(".animated-shape"),
         intro:
-          "Each box represents a location node, and each node has a tier assignment in COEQWAL. Hover over shapes for details, click to select and view on the map.",
+          "Each box represents a location of interest, and each location has a tier assignment in COEQWAL. Hover over shapes for details, click to select and view on the map.",
         position: "right",
       },
       {
         element: document.querySelector('[data-tour="selected-nodes"]'),
         intro:
-          "Selected nodes appear here. Click to view their location on the map, or remove them from the selection.",
+          "Selected locations of interest appear here. Click to view their location on the map, or remove them from the selection.",
         position: "left",
       },
       {
         element: document.querySelector('[data-tour="map"]'),
         intro:
-          "The map shows the geographic location of selected nodes. Hover over polygons to see details.",
+          "The map shows the geographic location of selected locations of interest. Hover over polygons to see details.",
         position: "left",
       },
       {

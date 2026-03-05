@@ -2,13 +2,13 @@
   <div class="w-full h-full bg-white p-3 relative flex flex-col">
     <div class="flex items-center justify-between gap-3 mb-2">
       <!-- Title -->
-      <h2 class="font-semibold text-gray-800 m-0 text-base">
+      <!-- <h2 class="font-semibold text-gray-800 m-0 text-base">
         {{
           showComparison
             ? `Comparing ${currentScenario} and ${baselineScenario}`
             : `Viewing scenario ${currentScenario}`
         }}
-      </h2>
+      </h2> -->
 
       <!-- Controls -->
       <div class="flex gap-2 items-center flex-wrap">
@@ -26,7 +26,7 @@
               :key="scenario.scenario_code"
               :value="scenario.scenario_code"
             >
-              {{ scenario.scenario_code }}
+              {{ scenario.title ? scenario.title : scenario.scenario_code }}
             </option>
           </select>
         </div>
@@ -74,7 +74,7 @@
               :key="scenario.scenario_code"
               :value="scenario.scenario_code"
             >
-              {{ scenario.scenario_code }}
+              {{ scenario.title ? scenario.title : scenario.scenario_code }}
             </option>
           </select>
         </div>
@@ -199,7 +199,7 @@
               v-model="searchBarVal"
               @keyup="searchObjectives"
               @focus="showSearchResults = searchBarVal.length > 0"
-              placeholder="Search for Nodes..."
+              placeholder="Search for LOIs..."
               class="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
@@ -253,7 +253,9 @@
           </div>
 
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-gray-700">Selected Nodes</h3>
+            <h3 class="text-sm font-semibold text-gray-700">
+              Selected Locations of Interest
+            </h3>
             <button
               v-if="selectedObjectives.length > 0"
               @click="clearAllSelected"
@@ -267,8 +269,8 @@
             v-if="selectedObjectives.length === 0"
             class="flex-1 flex items-center justify-center text-gray-400 text-sm text-center"
           >
-            Click nodes to select them, or click a category label or
-            tier-category cell to select all
+            Click locations of interest to select them, or click a category
+            label or tier-category cell to select all
           </div>
 
           <div v-else class="flex-1 overflow-auto flex flex-col gap-1.5">
@@ -346,6 +348,7 @@ import {
   fetchDataFromTierMap,
   createSearchIndex,
   searchObjectives as searchUtil,
+  nameToTitleMap,
 } from "../utils";
 import CategoryComparisonChart from "./CategoryComparisonChart.vue";
 
@@ -907,41 +910,52 @@ const drawLabelsAndGrid = (width, height) => {
   // Only draw grid lines for regular tier mode (horizontal mode draws its own)
   if (viewMode.value === "tier") {
     // Grid lines - vertical lines at category boundaries
-  categoryLayouts.forEach((layout, i) => {
+    categoryLayouts.forEach((layout, i) => {
+      svg
+        .append("line")
+        .attr("class", "grid-line")
+        .attr("x1", margin.left + layout.startX)
+        .attr("y1", margin.top)
+        .attr("x2", margin.left + layout.startX)
+        .attr("y2", margin.top + gridHeight)
+        .attr("stroke", "#D1D5DB")
+        .attr("stroke-width", 1);
+    });
+
+    // Add final vertical line at the end
     svg
       .append("line")
       .attr("class", "grid-line")
-      .attr("x1", margin.left + layout.startX)
+      .attr("x1", margin.left + gridWidth)
       .attr("y1", margin.top)
-      .attr("x2", margin.left + layout.startX)
+      .attr("x2", margin.left + gridWidth)
       .attr("y2", margin.top + gridHeight)
       .attr("stroke", "#D1D5DB")
       .attr("stroke-width", 1);
-  });
 
-  // Add final vertical line at the end
-  svg
-    .append("line")
-    .attr("class", "grid-line")
-    .attr("x1", margin.left + gridWidth)
-    .attr("y1", margin.top)
-    .attr("x2", margin.left + gridWidth)
-    .attr("y2", margin.top + gridHeight)
-    .attr("stroke", "#D1D5DB")
-    .attr("stroke-width", 1);
+    // Horizontal grid lines
+    tiers.forEach((_, i) => {
+      svg
+        .append("line")
+        .attr("class", "grid-line")
+        .attr("x1", margin.left)
+        .attr("y1", margin.top + i * cellHeight)
+        .attr("x2", margin.left + gridWidth)
+        .attr("y2", margin.top + i * cellHeight)
+        .attr("stroke", "#D1D5DB")
+        .attr("stroke-width", 1);
+    });
 
-  // Horizontal grid lines
-  tiers.forEach((_, i) => {
+    // Add final horizontal line at the bottom
     svg
       .append("line")
       .attr("class", "grid-line")
       .attr("x1", margin.left)
-      .attr("y1", margin.top + i * cellHeight)
+      .attr("y1", margin.top + gridHeight)
       .attr("x2", margin.left + gridWidth)
-      .attr("y2", margin.top + i * cellHeight)
+      .attr("y2", margin.top + gridHeight)
       .attr("stroke", "#D1D5DB")
       .attr("stroke-width", 1);
-  });
 
     // Tier labels
     svg
@@ -1100,12 +1114,7 @@ const drawTierBackgrounds = (width, height) => {
           .attr("fill", (d) => tierColors[d.tierIndex])
           .attr("stroke", "#D1D5DB")
           .attr("stroke-width", 0.5)
-          .style(
-            "opacity",
-            viewMode.value === "tier" || viewMode.value === "tier_horizontal"
-              ? 0.2
-              : 0,
-          )
+          .style("opacity", 0) // No background colors in tier modes
           .style("cursor", "pointer"),
       (update) =>
         update
@@ -1116,12 +1125,7 @@ const drawTierBackgrounds = (width, height) => {
           .attr("width", (d) => d.width)
           .attr("height", (d) => d.height)
           .attr("fill", (d) => tierColors[d.tierIndex])
-          .style(
-            "opacity",
-            viewMode.value === "tier" || viewMode.value === "tier_horizontal"
-              ? 0.2
-              : 0,
-          ),
+          .style("opacity", 0), // No background colors in tier modes
     )
     .on("click", function (_event, d) {
       drawPolygonsForCategoryTier(d.category, d.tier);
@@ -1143,7 +1147,7 @@ const drawLegends = (width, height) => {
     const legendX = margin.left;
     const legendY = margin.top - 25; // Position at top
     const legendItemSize = 18;
-    const legendSpacing = 120;
+    const legendSpacing = 160;
 
     // Up triangle (improved)
     const upPath = `M ${legendX},${legendY - legendItemSize * 0.4} L ${
@@ -1161,7 +1165,7 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX + 15)
       .attr("y", legendY + 5)
-      .text("Improved");
+      .text("Improved in Sce. 1");
 
     // Square (no change)
     svg
@@ -1197,7 +1201,7 @@ const drawLegends = (width, height) => {
       .attr("class", "legend-item")
       .attr("x", legendX + legendSpacing * 2 + 15)
       .attr("y", legendY + 5)
-      .text("Worsened");
+      .text("Worsened in Sce. 1");
 
     // Gray dotted box (baseline)
     svg
@@ -2085,7 +2089,10 @@ const loadData = async () => {
 };
 
 onMounted(async () => {
-  const scenarios = await fetchAvailableScenarios();
+  let scenarios = (await fetchAvailableScenarios()).map((scenario) => ({
+    ...scenario,
+    title: nameToTitleMap[scenario.scenario_code],
+  }));
   availableScenarios.value = scenarios;
 
   // Fetch tier short codes (category metadata)

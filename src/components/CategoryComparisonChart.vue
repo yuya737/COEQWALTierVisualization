@@ -1,7 +1,10 @@
 <template>
   <div class="w-full h-full bg-white p-4 flex flex-col">
     <h3 class="text-base font-semibold text-gray-800 mb-3">
-      Comparing {{ currentScenario }} from {{ baselineScenario }}
+      From
+      {{ nameToTitleMap[baselineScenario] || baselineScenario }}
+      to
+      {{ nameToTitleMap[currentScenario] || currentScenario }}...
     </h3>
     <div class="flex-1 flex gap-4 overflow-hidden">
       <!-- Chart (left side, takes more space) -->
@@ -24,6 +27,7 @@
 
 <script setup>
 import { ref, watch, onMounted, computed } from "vue";
+import { nameToTitleMap } from "../utils";
 import * as d3 from "d3";
 
 const props = defineProps({
@@ -424,7 +428,7 @@ const drawChart = () => {
     .attr("text-anchor", "middle")
     .style("font-size", "12px")
     .style("font-weight", "600")
-    .text("Percentage of Nodes");
+    .text("Percentage of Locations of Interest");
 
   // Legend
   const legend = svg

@@ -3,13 +3,7 @@ import GW_STOR from "./GW_STOR.js";
 import RES_STOR from "./RES_STOR.js";
 import Fuse from "fuse.js";
 
-// Use CORS proxy (temporary solution for GitHub Pages deployment)
-const USE_CORS_PROXY = false; // Set to false when running locally or when API supports CORS
-
-const CORS_PROXY = "https://cors-anywhere.com/";
-
-const API_BASE = "https://api.coeqwal.org/api";
-const API_ROOT = USE_CORS_PROXY ? `${CORS_PROXY}${API_BASE}` : API_BASE;
+const API_ROOT = "https://api.coeqwal.org/api";
 
 export const calculateMeanTier = (objectives: any[]): number => {
   if (!objectives || objectives.length === 0) {
@@ -306,3 +300,62 @@ export const searchObjectives = (
   const results = searchIndex.search(query.trim());
   return results.map((result) => result.item);
 };
+
+const scenarioID = [
+  "s0020",
+  "s0011",
+  "s0021",
+  "s0024",
+  "s0023",
+  "s0025",
+  "s0026",
+  "s0027",
+  "s0028",
+  "s0030",
+  "S0046",
+  "s0032",
+  "s0031",
+  "s0033",
+  "s0035",
+  "s0036",
+  "s0037",
+  "s0040",
+  "s0041",
+  "s0042",
+  "s0039",
+  "s0044",
+  "s0045",
+  "s0065",
+];
+
+const titles = [
+  "Current operations",
+  "Current operations with historical land use",
+  "Current operations without TUCPs",
+  "Current USBR operations",
+  "Current USBR operations without TUPCs",
+  "Groundwater pumping limits in the San Joaquin Valley",
+  "Groundwater pumping limits and reduced crop acreage in the San Joaquin Valley",
+  "Groundwater pumping limits in the Central Valley",
+  "Groundwater pumping limits and reduced crop acreage in the Central Valley",
+  "No flow requirements",
+  "Functional environmental flows",
+  "Functional environmental flows with groundwater regulations",
+  "Salmon-friendly flows",
+  "Salmon-friendly flows with groundwater regulations",
+  "Prioritizing human health delivery levels to community water systems",
+  "Prioritizing functional delivery levels to community water systems",
+  "Prioritizing full demands of community water systems",
+  "Reduce delta outflows (35% unimpaired flow)",
+  "Maintain Delta outflows (45% of unimpaired flow)",
+  "Increase Delta outflows (55% of unimpaired flow)",
+  "Increase Delta outflows (65% of unimpaired flow)",
+  "Increase Shasta carry-over storage",
+  "Relax Delta salinity standards",
+  "Delta Conveyance Project",
+];
+
+export const nameToTitleMap: { [key: string]: string } = {};
+scenarioID.forEach((id, index) => {
+  nameToTitleMap[id] = titles[index];
+});

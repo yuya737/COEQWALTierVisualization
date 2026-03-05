@@ -11,7 +11,7 @@
     >
       <div v-if="hoveredFeature.properties">
         <div v-if="hoveredFeature.properties.location_name">
-          <strong>Node:</strong>
+          <strong>Location:</strong>
           {{ hoveredFeature.properties.location_name }}
         </div>
         <div v-if="hoveredFeature.properties.tier_level">
@@ -167,8 +167,7 @@ const initDeck = () => {
     pitch: props.viewState.pitch,
     bearing: props.viewState.bearing,
     interactive: true,
-    accessToken:
-      "pk.eyJ1IjoieXV5YTczNyIsImEiOiJjbGY0ZmMzbG4wcjNvM3hxbTVqaWpqaDQ3In0.wkIMGbAn6HaRVqPs2CJSnA",
+    accessToken: import.meta.env.VITE_MAPBOX_TOKEN,
   });
 
   map.on("load", () => {
