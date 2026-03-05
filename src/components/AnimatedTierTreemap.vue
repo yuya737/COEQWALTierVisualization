@@ -26,7 +26,11 @@
               :key="scenario.scenario_code"
               :value="scenario.scenario_code"
             >
-              {{ scenario.title ? scenario.title : scenario.scenario_code }}
+              {{
+                scenario.title
+                  ? `${scenario.scenario_code}: ${scenario.title}`
+                  : scenario.scenario_code
+              }}
             </option>
           </select>
         </div>
@@ -74,7 +78,11 @@
               :key="scenario.scenario_code"
               :value="scenario.scenario_code"
             >
-              {{ scenario.title ? scenario.title : scenario.scenario_code }}
+              {{
+                scenario.title
+                  ? `${scenario.scenario_code}: ${scenario.title}`
+                  : scenario.scenario_code
+              }}
             </option>
           </select>
         </div>
@@ -119,7 +127,7 @@
             />
             <span class="text-xs">Horiz</span>
           </label>
-          <label class="flex items-center gap-1 cursor-pointer">
+          <!-- <label class="flex items-center gap-1 cursor-pointer">
             <input
               type="radio"
               value="treemap"
@@ -128,7 +136,7 @@
               class="cursor-pointer w-3 h-3"
             />
             <span class="text-xs">Tree</span>
-          </label>
+          </label> -->
         </div>
 
         <!-- Divider -->
@@ -1713,6 +1721,9 @@ const animateTransition = (shouldAnimate = true) => {
       return "#fff";
     })
     .attr("stroke-width", (d) => {
+      // Thin stroke in horizontal mode
+      if (viewMode.value === "tier_horizontal") return 0;
+
       // Check if this objective is selected
       const locationId = d.obj.locationId;
       const isSelected = selectedObjectives.value.some(

@@ -34,7 +34,7 @@ const startTour = () => {
     steps: [
       {
         intro:
-          "Welcome to the COEQWAL Scenario Exploration Tool! This tool helps you explore and compare water management scenarios across California and their tier classifications across the state.",
+          "Welcome to the COEQWAL Scenario Exploration Tool! This tool helps you explore and compare water management scenarios across California and their tier classifications across the state.<br><br><small style='color: #6b7280;'>Press 'Esc' or click outside to dismiss this tutorial, or click 'Next' to continue.</small>",
       },
       {
         element: document.querySelector('[data-tour="scenario-selector"]'),
@@ -99,8 +99,10 @@ const startTour = () => {
     showBullets: true,
     exitOnOverlayClick: true,
     exitOnEsc: true,
+    showStepNumbers: false,
     nextLabel: "Next",
     prevLabel: "Back",
+    skipLabel: "Skip",
     doneLabel: "Done",
     scrollToElement: true,
     // scrollPadding: 30,
@@ -236,12 +238,24 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
+/* Force skip button to be visible */
 .introjs-skipbutton {
+  display: inline-block !important;
+  opacity: 1 !important;
   color: #6b7280;
+  font-weight: 500;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .introjs-skipbutton:hover {
   color: #374151;
+  background-color: #f3f4f6;
+  border-radius: 6px;
 }
 
 /* Highlight effect for SVG shapes during tour */

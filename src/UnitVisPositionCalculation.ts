@@ -487,78 +487,93 @@ export const calculateHorizontalTierPositions = (
   const tierHeight = gridHeight / tiers.length;
 
   // Calculate global dot size and actual category widths
-  const categoryPadding = 0; // No padding in horizontal mode to maximize space
-  const minHorizontalDotSize = 2; // Smaller minimum for horizontal mode
+  const categoryPadding = 0; // No padding - categories are scaled to fit perfectly
+  const minHorizontalDotSize = 0.5; // Smaller minimum for horizontal mode
   let globalDotSize = MAX_DOT_SIZE;
 
-  // First pass: count total dots in each category
-  // Since xPositionCounter increments across ALL tiers, we need total count
-  const categoryCounts = new Map<string, number>();
+  // First pass: find max dots in any single tier within each category
+  // Since dots are left-aligned per tier, width is based on the widest tier
+  const categoryMaxCounts = new Map<string, number>();
   categories.forEach((category) => {
     const categoryObjs = grouped.get(category);
     if (!categoryObjs) {
-      categoryCounts.set(category, 0);
+      categoryMaxCounts.set(category, 0);
       return;
     }
 
-    const totalCount = Array.from(categoryObjs.values()).reduce(
-      (sum, tierObjs) => sum + tierObjs.length,
-      0,
-    );
-    categoryCounts.set(category, totalCount);
+    // Find the tier with the most dots in this category
+    let maxCount = 0;
+    tiers.forEach((tier) => {
+      const tierObjs = categoryObjs.get(tier) || [];
+      maxCount = Math.max(maxCount, tierObjs.length);
+    });
+    categoryMaxCounts.set(category, maxCount);
   });
 
   // Calculate dot size based on fitting all categories in available width
   // For horizontal mode, we need much smaller dots and tighter spacing
   const minCategoryWidth = 50; // Minimum width for any category
+  let spacing = 2;
+  const edgePadding = 3; // Fixed padding on left and right edges
   console.log("Horizontal layout - gridWidth:", gridWidth);
-  console.log("Horizontal layout - category counts:", categoryCounts);
+  console.log("Horizontal layout - category max counts:", categoryMaxCounts);
 
-  for (let size = MAX_DOT_SIZE; size >= minHorizontalDotSize; size -= 0.5) {
-    const spacing = size * 1.1; // Tighter spacing (was 1.2)
-
-    // Calculate total required width for all categories, accounting for minimum width
+  for (let size = MAX_DOT_SIZE; size >= minHorizontalDotSize; size -= 0.01) {
+    spacing = size * 0.3; // Tighter spacing for horizontal mode
+    // Calculate total required width for all categories
     let totalRequiredWidth = 0;
     categories.forEach((category) => {
-      const count = categoryCounts.get(category) || 0;
-      const calculatedWidth = count > 0
-        ? categoryPadding + (count - 1) * spacing + size + categoryPadding
-        : categoryPadding * 2 + size;
+      const count = categoryMaxCounts.get(category) || 0;
+      const calculatedWidth =
+        count > 0
+          ? edgePadding + count * size + (count - 1) * spacing + edgePadding
+          : edgePadding + size + edgePadding;
 
-      // Apply minimum category width
-      const categoryWidth = Math.max(calculatedWidth, minCategoryWidth);
-      totalRequiredWidth += categoryWidth;
+      totalRequiredWidth += Math.max(calculatedWidth, minCategoryWidth);
     });
+    console.log(size, totalRequiredWidth, gridWidth);
 
     if (totalRequiredWidth <= gridWidth) {
       globalDotSize = size;
-      console.log("Horizontal layout - found dot size:", globalDotSize, "required width:", totalRequiredWidth);
+      console.log(
+        "Horizontal layout - found dot size:",
+        globalDotSize,
+        "required width:",
+        totalRequiredWidth,
+      );
       break;
     }
   }
 
-  if (globalDotSize < minHorizontalDotSize) globalDotSize = minHorizontalDotSize;
+  if (globalDotSize < minHorizontalDotSize)
+    globalDotSize = minHorizontalDotSize;
 
   // Also check if it fits vertically in tier height
   const maxSizeForHeight = tierHeight - 4;
   globalDotSize = Math.min(globalDotSize, maxSizeForHeight);
-  if (globalDotSize < minHorizontalDotSize) globalDotSize = minHorizontalDotSize;
+  if (globalDotSize < minHorizontalDotSize)
+    globalDotSize = minHorizontalDotSize;
 
-  const spacing = globalDotSize * 1.1; // Use same spacing as in calculation
-
-  // Calculate actual category widths and positions based on total dot count
+  // Calculate actual category widths and positions based on max dots per tier
   const categoryLayouts: CategoryLayout[] = [];
-  // minCategoryWidth already declared above in dot size calculation
   let totalWidth = 0;
 
   categories.forEach((category) => {
-    const count = categoryCounts.get(category) || 0;
-    const calculatedWidth = count > 0
-      ? categoryPadding + (count - 1) * spacing + globalDotSize + categoryPadding
-      : categoryPadding * 2 + globalDotSize;
+    const count = categoryMaxCounts.get(category) || 0;
+    // Width = leftPadding + (count dots * dotWidth) + ((count-1) gaps * spacing) + rightPadding
+    const calculatedWidth =
+      count > 0
+        ? edgePadding +
+          count * globalDotSize +
+          (count - 1) * spacing +
+          edgePadding
+        : edgePadding + globalDotSize + edgePadding;
 
-    // Apply minimum width
     const actualWidth = Math.max(calculatedWidth, minCategoryWidth);
+
+    console.log(
+      `Category ${category}: count=${count}, calculated=${calculatedWidth}, actual=${actualWidth}`,
+    );
 
     categoryLayouts.push({
       category,
@@ -568,12 +583,11 @@ export const calculateHorizontalTierPositions = (
     totalWidth += actualWidth;
   });
 
-  // Scale categories to use full width if there's extra space
-  const scaleFactor = totalWidth < gridWidth ? gridWidth / totalWidth : 1;
+  // Don't scale - let categories have their natural widths
+  const scaleFactor = 1; // No scaling
   let currentX = 0;
 
   categoryLayouts.forEach((layout) => {
-    layout.width = layout.width * scaleFactor;
     layout.startX = currentX;
     currentX += layout.width;
   });
@@ -592,6 +606,10 @@ export const calculateHorizontalTierPositions = (
   // Scale spacing and padding to match scaled category widths
   const scaledSpacing = spacing * scaleFactor;
   const scaledPadding = categoryPadding * scaleFactor;
+
+  console.log("Spacing:", spacing, "-> Scaled:", scaledSpacing);
+  console.log("Padding:", categoryPadding, "-> Scaled:", scaledPadding);
+  console.log("Dot size (not scaled):", globalDotSize);
 
   const positions: Position[] = [];
   const cellLayouts = new Map<
@@ -612,11 +630,12 @@ export const calculateHorizontalTierPositions = (
 
     if (!categoryObjs) return;
 
-    // Track X position across all tiers in this category
-    let xPositionCounter = 0;
 
     tiers.forEach((tier, tierIndex) => {
       const tierObjectives = categoryObjs.get(tier) || [];
+
+      // Reset X position counter for each tier to left-align dots
+      let xPositionCounter = 0;
 
       // Sort by change (improved/same/worsened), then by water volume
       const sortedTierObjs = [...tierObjectives].sort((a, b) => {
@@ -649,9 +668,8 @@ export const calculateHorizontalTierPositions = (
         const rectWidth = globalDotSize;
         const rectHeight = Math.min(globalDotSize * 5, tierHeight - 8); // 5x taller, but don't exceed tier height
 
-        // Center the rectangle at the calculated X position
-        const centerX = scaledPadding + xPositionCounter * scaledSpacing;
-        const x_rel = centerX + rectWidth / 2;
+        // Position: leftPadding + (dotIndex * (dotWidth + spacing))
+        const x_rel = edgePadding + xPositionCounter * (globalDotSize + spacing);
         const y_rel = tierHeight / 2; // Center vertically in tier row
 
         const globalX = margin.left + categoryX + x_rel;
